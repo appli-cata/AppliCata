@@ -17,19 +17,34 @@
             background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%);
             color: var(--text); min-height: 100vh; display: flex; justify-content: center; padding: 10px;
         }
+
+        /* Écran Login */
+        #loginScreen {
+            position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
+        }
+        .login-box { background: var(--card-bg); padding: 30px; border-radius: 20px; border: 1px solid var(--border); text-align: center; width: 100%; max-width: 400px; }
+
+        /* App Layout */
         .app {
             max-width: 1200px; width: 100%; background: rgba(15, 23, 42, 0.98);
             border-radius: 18px; padding: 14px; box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65);
             border: 1px solid rgba(55, 65, 81, 0.8); backdrop-filter: blur(12px);
+            display: none;
         }
         
+        .header-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 15px; }
         .mode-bar {
-            display: flex; justify-content: space-between; align-items: center;
-            background: #1e293b; padding: 10px 15px; border-radius: 12px; margin-bottom: 15px;
-            border: 1px solid var(--border);
+            flex-grow: 1; display: flex; justify-content: space-between; align-items: center;
+            background: #1e293b; padding: 10px 15px; border-radius: 12px; border: 1px solid var(--border);
         }
-        .mode-toggle { display: flex; gap: 10px; align-items: center; font-weight: bold; }
-        .mode-status { padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; text-transform: uppercase; }
+        .lock-btn {
+            background: #1e293b; border: 1px solid var(--border); padding: 10px 15px; 
+            border-radius: 12px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center;
+        }
+        .lock-btn.locked { border-color: var(--yellow); background: rgba(245, 158, 11, 0.1); }
+
+        .mode-status { padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; text-transform: uppercase; font-weight: bold; }
         .status-exercice { background: #38bdf8; color: #020617; }
         .status-reel { background: #ef4444; color: white; animation: blink 1.5s infinite; }
         @keyframes blink { 50% { opacity: 0.6; } }
@@ -53,13 +68,13 @@
         .count-value { font-size: 2.8rem; font-weight: 800; text-align: center; margin: 10px 0; }
         .card-btns { display: flex; gap: 8px; }
         .btn-counter { flex: 1; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; background: #1e293b; color: white; font-size: 1.4rem; }
+        .btn-counter:disabled { opacity: 0.2; cursor: not-allowed; }
 
         .panel { display: flex; flex-direction: column; gap: 15px; }
         .section-box { background: #020617; border: 1px solid var(--border); padding: 15px; border-radius: 16px; }
         .section-title { color: var(--accent); font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
         
-        .synth-row { display: flex; justify-content: space-between; font-size: 0.9rem; padding: 6px 0; border-bottom: 1px solid #1f2937; cursor: pointer; }
-        .synth-row:hover { background: rgba(56, 189, 248, 0.1); }
+        .synth-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 6px 0; border-bottom: 1px solid #1f2937; }
         .total-global { font-size: 1.3rem; font-weight: 800; color: var(--accent); margin-top: 10px; text-align: right; }
 
         input, select, textarea { 
@@ -67,31 +82,46 @@
             padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.85rem;
         }
         .btn-primary { background: linear-gradient(135deg, #0ea5e9, #22c55e); color: #020617; font-weight: bold; padding: 12px; border: none; border-radius: 8px; width: 100%; cursor: pointer; }
-        
-        .zone-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
-        .btn-rename { background: #1f2937; border: none; color: var(--muted); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
-        .btn-reset { background: transparent; color: var(--red); border: 1px solid var(--red); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
+        .btn-reset { background: transparent; color: var(--red); border: 1px solid var(--red); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
     </style>
 </head>
 <body>
 
-<div class="app">
-    <div class="mode-bar">
-        <div class="mode-toggle">
-            <span>MODE :</span>
-            <label><input type="radio" name="mode" value="EXERCICE" checked id="radioExo" onchange="updateMode('EXERCICE')"> EXO</label>
-            <label><input type="radio" name="mode" value="RÉEL" id="radioReel" onchange="updateMode('RÉEL')"> RÉEL</label>
+<!-- Écran Login -->
+<div id="loginScreen">
+    <div class="login-box">
+        <h2 style="margin-bottom: 20px; color: var(--accent);">Accès Restreint</h2>
+        <input type="password" id="passInput" placeholder="Code d'accès" style="text-align: center;">
+        <button class="btn-primary" onclick="checkPass()">ENTRER</button>
+        <p id="loginError" style="color: var(--red); margin-top: 10px; font-size: 0.8rem; display: none;">Code incorrect</p>
+    </div>
+</div>
+
+<div class="app" id="appMain">
+    <div class="header-top">
+        <div class="mode-bar">
+            <div class="mode-toggle">
+                <label><input type="radio" name="mode" value="EXERCICE" checked id="radioExo" onchange="updateMode('EXERCICE')"> EXO</label>
+                <label><input type="radio" name="mode" value="RÉEL" id="radioReel" onchange="updateMode('RÉEL')"> RÉEL</label>
+            </div>
+            <div id="modeStatus" class="mode-status status-exercice">EXERCICE</div>
         </div>
-        <div id="modeStatus" class="mode-status status-exercice">EXERCICE EN COURS</div>
+        <button id="lockBtn" class="lock-btn locked" onclick="toggleLock()">
+            <span id="lockIcon">🔒</span>
+        </button>
     </div>
 
     <header>
         <div class="tabs-container" id="tabList"></div>
-        <div class="zone-header">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
             <h1 id="activeTitle" style="color: white; font-size: 1.6rem;">PRV 1</h1>
-            <button class="btn-rename" onclick="renameCurrentZone()">✎ Renommer</button>
+            <button class="btn-reset action-btn" onclick="renameCurrentZone()">✎ Renommer</button>
             <div style="flex-grow: 1;"></div>
-            <button class="btn-reset" onclick="resetAllData()">RÀZ GÉNÉRALE</button>
+            <button class="btn-reset action-btn" onclick="resetAllData()">RÀZ GÉNÉRALE</button>
+        </div>
+        <div class="section-box" style="margin-bottom: 15px; padding: 10px;">
+            <div class="section-title" style="margin-bottom: 5px;">Médecin Responsable Zone</div>
+            <input type="text" id="medName" placeholder="Nom du médecin..." onchange="updateMed(this.value)" class="action-btn">
         </div>
     </header>
 
@@ -100,53 +130,40 @@
             <div class="category-card" style="border-top: 4px solid var(--red);">
                 <div class="section-title">URGENCE ABSOLUE (R)</div>
                 <div class="count-value" id="count-red">0</div>
-                <div class="card-btns">
-                    <button class="btn-counter" onclick="changeVal('red', -1)">-</button>
-                    <button class="btn-counter" onclick="changeVal('red', 1)">+</button>
-                </div>
+                <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('red', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('red', 1)">+</button></div>
             </div>
             <div class="category-card" style="border-top: 4px solid var(--yellow);">
                 <div class="section-title">URGENCE RELATIVE (J)</div>
                 <div class="count-value" id="count-yellow">0</div>
-                <div class="card-btns">
-                    <button class="btn-counter" onclick="changeVal('yellow', -1)">-</button>
-                    <button class="btn-counter" onclick="changeVal('yellow', 1)">+</button>
-                </div>
+                <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('yellow', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('yellow', 1)">+</button></div>
             </div>
             <div class="category-card" style="border-top: 4px solid var(--green);">
-                <div class="section-title">IMPLIQUÉS (V)</div>
+                <div class="section-title">IMPLIQUÉS (Vert)</div>
                 <div class="count-value" id="count-green">0</div>
-                <div class="card-btns">
-                    <button class="btn-counter" onclick="changeVal('green', -1)">-</button>
-                    <button class="btn-counter" onclick="changeVal('green', 1)">+</button>
-                </div>
+                <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('green', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('green', 1)">+</button></div>
             </div>
             <div class="category-card" style="border-top: 4px solid var(--black);">
-                <div class="section-title">DÉCÉDÉS (N)</div>
+                <div class="section-title">DÉCÉDÉS (Noir)</div>
                 <div class="count-value" id="count-black">0</div>
-                <div class="card-btns">
-                    <button class="btn-counter" onclick="changeVal('black', -1)">-</button>
-                    <button class="btn-counter" onclick="changeVal('black', 1)">+</button>
-                </div>
+                <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('black', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('black', 1)">+</button></div>
             </div>
         </section>
 
         <aside class="panel">
             <div class="section-box">
-                <div class="section-title">Synthèse des Zones</div>
+                <div class="section-title">Synthèse Globale</div>
                 <div id="synthContent"></div>
                 <div class="total-global" id="totalGlobal">Total : 0</div>
             </div>
-
             <div class="section-box">
-                <div class="section-title">Paramètres Bilan</div>
+                <div class="section-title">Paramètres Bilan Radio</div>
                 <input type="text" id="vlmId" value="VLM 1" placeholder="Indicatif">
-                <select id="secureStatus"><option value="est sécurisée">Sécurisée</option><option value="n’est pas sécurisée">NON sécurisée</option></select>
-                <select id="evolStatus"><option value="non évolutive">Non évolutive</option><option value="évolutive">Évolutive</option></select>
+                <select id="secureStatus"><option value="est sécurisée">Zone sécurisée</option><option value="n’est pas sécurisée">Zone NON sécurisée</option></select>
+                <select id="evolStatus"><option value="non évolutive">Situation non évolutive</option><option value="évolutive">Situation évolutive</option></select>
                 <select id="contextType"><option value="aucun">Aucun contexte</option><option value="attentat">Attentat</option><option value="toxique">Toxique</option><option value="NRBC">NRBC</option></select>
                 
-                <button class="btn-primary" onclick="generateBilan()">GÉNÉRER BILAN RADIO</button>
-                <textarea id="radioText" rows="12" readonly placeholder="Le message apparaîtra ici..."></textarea>
+                <button class="btn-primary" onclick="generateBilan()">GÉNÉRER BILAN COMPLET</button>
+                <textarea id="radioText" rows="12" readonly style="font-size: 0.75rem; margin-top:10px;" placeholder="Le texte apparaîtra ici..."></textarea>
             </div>
         </aside>
     </main>
@@ -157,36 +174,57 @@
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
     const firebaseConfig = {
-        apiKey: "triage-cata-pc",
+        apiKey: "TRIAGE_PC",
         databaseURL: "https://triage-cata-pc-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "triage-cata-pc",
+        projectId: "TRIAGE_PC",
     };
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const triageRef = ref(db, 'triage_live');
 
+    let isLocked = true;
     let state = {
         mode: "EXERCICE",
         currentZone: "PRV 1",
-        zones: { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0 } }
+        zones: { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "" } }
     };
 
+    window.checkPass = () => {
+        if(document.getElementById('passInput').value === "SAMU30") {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('appMain').style.display = 'block';
+        } else { document.getElementById('loginError').style.display = 'block'; }
+    };
+
+    window.toggleLock = () => { isLocked = !isLocked; render(); };
+
+    function applyLock() {
+        document.querySelectorAll('.action-btn').forEach(b => b.disabled = isLocked);
+        document.getElementById('lockIcon').innerText = isLocked ? "🔒" : "🔓";
+        document.getElementById('lockBtn').className = isLocked ? "lock-btn locked" : "lock-btn";
+    }
+
     window.updateMode = (val) => { state.mode = val; save(); };
+    window.updateMed = (val) => { state.zones[state.currentZone].med = val; save(); };
     window.changeVal = (cat, n) => {
-        if (!state.zones[state.currentZone]) return;
+        if (isLocked) return;
         state.zones[state.currentZone][cat] = Math.max(0, state.zones[state.currentZone][cat] + n);
         save();
     };
     window.switchZone = (name) => { state.currentZone = name; render(); save(); };
+    
     window.addZone = (type) => {
+        if(isLocked) return;
         let newName = type === 'PRV' ? "PRV " + (Object.keys(state.zones).filter(k => k.startsWith('PRV')).length + 1) : type;
-        if (state.zones[newName]) { alert("Existe déjà."); return; }
-        state.zones[newName] = { red: 0, yellow: 0, green: 0, black: 0 };
+        if (state.zones[newName]) return;
+        state.zones[newName] = { red: 0, yellow: 0, green: 0, black: 0, med: "" };
         state.currentZone = newName;
         save();
     };
+
     window.renameCurrentZone = () => {
+        if(isLocked) return;
         const oldName = state.currentZone;
         const newName = prompt("Nouveau nom :", oldName);
         if (newName && newName !== oldName) {
@@ -196,9 +234,11 @@
             save();
         }
     };
+
     window.resetAllData = () => {
-        if(confirm("⚠ TOUT EFFACER ?")) {
-            state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0 } };
+        if(isLocked) return;
+        if(confirm("⚠ VOULEZ-VOUS TOUT EFFACER ?")) {
+            state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "" } };
             state.currentZone = "PRV 1";
             save();
         }
@@ -212,33 +252,35 @@
         document.getElementById('radioReel').checked = isReel;
         document.getElementById('radioExo').checked = !isReel;
         const el = document.getElementById('modeStatus');
-        el.innerText = state.mode + " EN COURS";
+        el.innerText = state.mode;
         el.className = "mode-status " + (isReel ? "status-reel" : "status-exercice");
 
         const tabList = document.getElementById('tabList');
         let html = Object.keys(state.zones).map(z => `<button class="tab ${z === state.currentZone ? 'active' : ''}" onclick="switchZone('${z}')">${z}</button>`).join('');
-        html += `<button class="tab tab-special" onclick="addZone('PRV')">+ PRV</button>`;
-        if (!state.zones['PMA']) html += `<button class="tab tab-special" onclick="addZone('PMA')">+ PMA</button>`;
-        if (!state.zones['EVAC']) html += `<button class="tab tab-special" onclick="addZone('EVAC')">+ EVAC</button>`;
+        html += `<button class="tab tab-special action-btn" onclick="addZone('PRV')">+ PRV</button>`;
+        if (!state.zones['PMA']) html += `<button class="tab tab-special action-btn" onclick="addZone('PMA')">+ PMA</button>`;
+        if (!state.zones['EVAC']) html += `<button class="tab tab-special action-btn" onclick="addZone('EVAC')">+ EVAC</button>`;
         tabList.innerHTML = html;
 
         document.getElementById('activeTitle').innerText = state.currentZone;
-        const cz = state.zones[state.currentZone] || {red:0, yellow:0, green:0, black:0};
+        const cz = state.zones[state.currentZone] || {red:0, yellow:0, green:0, black:0, med:""};
         document.getElementById('count-red').innerText = cz.red;
         document.getElementById('count-yellow').innerText = cz.yellow;
         document.getElementById('count-green').innerText = cz.green;
         document.getElementById('count-black').innerText = cz.black;
+        document.getElementById('medName').value = cz.med || "";
 
         let globalTotal = 0;
         let synthHtml = "";
         Object.keys(state.zones).forEach(z => {
-            const data = state.zones[z];
-            const sum = data.red + data.yellow + data.green + data.black;
+            const d = state.zones[z];
+            const sum = d.red + d.yellow + d.green + d.black;
             globalTotal += sum;
-            synthHtml += `<div class="synth-row" onclick="switchZone('${z}')"><span>${z}</span><span><b style="color:var(--red)">${data.red}</b>/<b>${data.yellow}</b>/<b>${data.green}</b>/<b>${data.black}</b></span><strong>${sum}</strong></div>`;
+            synthHtml += `<div class="synth-row" onclick="switchZone('${z}')"><span><b>${z}</b> (${d.med || '?'})</span><strong>${sum}</strong></div>`;
         });
         document.getElementById('synthContent').innerHTML = synthHtml;
-        document.getElementById('totalGlobal').innerText = `Total Global : ${globalTotal}`;
+        document.getElementById('totalGlobal').innerText = `Total : ${globalTotal}`;
+        applyLock();
     }
 
     window.generateBilan = () => {
@@ -247,7 +289,7 @@
         const indicatif = document.getElementById('vlmId').value || "VLM 1";
         const prefix = state.mode === "EXERCICE" ? "*** EXERCICE ***\n" : "*** RÉEL ***\n";
         
-        const text = `${prefix}Centre 15, Centre 15,\nDe : ${indicatif}\nSecteur : ${state.currentZone}\n\nJe confirme le lieu et la nature.\nL’intervention ${document.getElementById('secureStatus').value}.\nJe considère la situation ${document.getElementById('evolStatus').value}.\nContexte : ${document.getElementById('contextType').value}.\n\nTotal victimes : ${total}\n- UA (rouge) : ${z.red}\n- UR (jaune) : ${z.yellow}\n- Impliqués (verts) : ${z.green}\n- Dépassés (noir) : ${z.black}\n\n${prefix}*** TERMINÉ ***`;
+        const text = `${prefix}Centre 15, Centre 15,\nDe : ${indicatif}\nSecteur : ${state.currentZone}\nResponsable : ${z.med || 'Non renseigné'}\n\nJe confirme le lieu et la nature.\nL’intervention ${document.getElementById('secureStatus').value}.\nJe considère la situation ${document.getElementById('evolStatus').value}.\nContexte : ${document.getElementById('contextType').value}.\n\nTotal victimes : ${total}\n- UA (rouge) : ${z.red}\n- UR (jaune) : ${z.yellow}\n- Impliqués (verts) : ${z.green}\n- Dépassés (noir) : ${z.black}\n\n${prefix}*** TERMINÉ ***`;
         document.getElementById('radioText').value = text;
     };
 </script>
