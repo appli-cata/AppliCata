@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Triage Multi-Zones - PC CATA</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#020617">
+    <style>
+        :root {
+            --bg: #0f172a; --card-bg: #020617;
+            --text: #e5e7eb; --muted: #9ca3af; --border: #1f2937;
+            --red: #ef4444; --yellow: #f59e0b; --green: #22c55e;
+            --black: #111827; --accent: #38bdf8;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
+        body {
+            background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%);
+            color: var(--text); min-height: 100vh; display: flex; justify-content: center; padding: 10px;
+        }
+        .app {
+            max-width: 1200px; width: 100%; background: rgba(15, 23, 42, 0.98);
+            border-radius: 18px; padding: 14px; box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65);
+            border: 1px solid rgba(55, 65, 81, 0.8); backdrop-filter: blur(12px);
+        }
+        
+        .mode-bar {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #1e293b; padding: 10px 15px; border-radius: 12px; margin-bottom: 15px;
+            border: 1px solid var(--border);
+        }
+        .mode-toggle { display: flex; gap: 10px; align-items: center; font-weight: bold; }
+        .mode-status { padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; text-transform: uppercase; }
+        .status-exercice { background: #38bdf8; color: #020617; }
+        .status-reel { background: #ef4444; color: white; animation: blink 1.5s infinite; }
+        @keyframes blink { 50% { opacity: 0.6; } }
+
+        .tabs-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border); }
+        .tab {
+            padding: 8px 16px; border-radius: 999px; border: 1px solid #374151;
+            background: #020617; color: white; cursor: pointer; white-space: nowrap; font-size: 0.85rem;
+        }
+        .tab.active { background: linear-gradient(135deg, #22c55e, #0ea5e9); color: #020617; font-weight: bold; }
+        .tab-special { border: 1px dashed var(--accent); color: var(--accent); }
+
+        main { display: grid; grid-template-columns: 1fr 350px; gap: 15px; }
+        @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
+
+        .triage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .category-card {
+            background: #020617; border: 1px solid var(--border); padding: 15px; border-radius: 16px;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .count-value { font-size: 2.8rem; font-weight: 800; text-align: center; margin: 10px 0; }
+        .card-btns { display: flex; gap: 8px; }
+        .btn-counter { flex: 1; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; background: #1e293b; color: white; font-size: 1.4rem; }
+
+        .panel { display: flex; flex-direction: column; gap: 15px; }
+        .section-box { background: #020617; border: 1px solid var(--border); padding: 15px; border-radius: 16px; }
+        .section-title { color: var(--accent); font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .synth-row { display: flex; justify-content: space-between; font-size: 0.9rem; padding: 6px 0; border-bottom: 1px solid #1f2937; cursor: pointer; }
+        .synth-row:hover { background: rgba(56, 189, 248, 0.1); }
+        .total-global { font-size: 1.3rem; font-weight: 800; color: var(--accent); margin-top: 10px; text-align: right; }
+
+        input, select, textarea { 
+            width: 100%; background: #0f172a; border: 1px solid #334155; color: white; 
+            padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.85rem;
+        }
+        .btn-primary { background: linear-gradient(135deg, #0ea5e9, #22c55e); color: #020617; font-weight: bold; padding: 12px; border: none; border-radius: 8px; width: 100%; cursor: pointer; }
+        
+        .zone-header { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .btn-rename { background: #1f2937; border: none; color: var(--muted); padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; cursor: pointer; }
+        .btn-reset { background: transparent; color: var(--red); border: 1px solid var(--red); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <div class="mode-bar">
+        <div class="mode-toggle">
+            <span>MODE :</span>
+            <label><input type="radio" name="mode" value="EXERCICE" checked id="radioExo" onchange="updateMode('EXERCICE')"> EXO</label>
+            <label><input type="radio" name="mode" value="RÉEL" id="radioReel" onchange="updateMode('RÉEL')"> RÉEL</label>
+        </div>
+        <div id="modeStatus" class="mode-status status-exercice">EXERCICE EN COURS</div>
+    </div>
+
+    <header>
+        <div class="tabs-container" id="tabList"></div>
+        <div class="zone-header">
+            <h1 id="activeTitle" style="color: white; font-size: 1.6rem;">PRV 1</h1>
+            <button class="btn-rename" onclick="renameCurrentZone()">✎ Renommer</button>
+            <div style="flex-grow: 1;"></div>
+            <button class="btn-reset" onclick="resetAllData()">RÀZ GÉNÉRALE</button>
+        </div>
+    </header>
+
+    <main>
+        <section class="triage-grid">
+            <div class="category-card" style="border-top: 4px solid var(--red);">
+                <div class="section-title">URGENCE ABSOLUE (R)</div>
+                <div class="count-value" id="count-red">0</div>
+                <div class="card-btns">
+                    <button class="btn-counter" onclick="changeVal('red', -1)">-</button>
+                    <button class="btn-counter" onclick="changeVal('red', 1)">+</button>
+                </div>
+            </div>
+            <div class="category-card" style="border-top: 4px solid var(--yellow);">
+                <div class="section-title">URGENCE RELATIVE (J)</div>
+                <div class="count-value" id="count-yellow">0</div>
+                <div class="card-btns">
+                    <button class="btn-counter" onclick="changeVal('yellow', -1)">-</button>
+                    <button class="btn-counter" onclick="changeVal('yellow', 1)">+</button>
+                </div>
+            </div>
+            <div class="category-card" style="border-top: 4px solid var(--green);">
+                <div class="section-title">IMPLIQUÉS (V)</div>
+                <div class="count-value" id="count-green">0</div>
+                <div class="card-btns">
+                    <button class="btn-counter" onclick="changeVal('green', -1)">-</button>
+                    <button class="btn-counter" onclick="changeVal('green', 1)">+</button>
+                </div>
+            </div>
+            <div class="category-card" style="border-top: 4px solid var(--black);">
+                <div class="section-title">DÉCÉDÉS (N)</div>
+                <div class="count-value" id="count-black">0</div>
+                <div class="card-btns">
+                    <button class="btn-counter" onclick="changeVal('black', -1)">-</button>
+                    <button class="btn-counter" onclick="changeVal('black', 1)">+</button>
+                </div>
+            </div>
+        </section>
+
+        <aside class="panel">
+            <div class="section-box">
+                <div class="section-title">Synthèse des Zones</div>
+                <div id="synthContent"></div>
+                <div class="total-global" id="totalGlobal">Total : 0</div>
+            </div>
+
+            <div class="section-box">
+                <div class="section-title">Paramètres Bilan</div>
+                <input type="text" id="vlmId" value="VLM 1" placeholder="Indicatif">
+                <select id="secureStatus"><option value="est sécurisée">Sécurisée</option><option value="n’est pas sécurisée">NON sécurisée</option></select>
+                <select id="evolStatus"><option value="non évolutive">Non évolutive</option><option value="évolutive">Évolutive</option></select>
+                <select id="contextType"><option value="aucun">Aucun contexte</option><option value="attentat">Attentat</option><option value="toxique">Toxique</option><option value="NRBC">NRBC</option></select>
+                
+                <button class="btn-primary" onclick="generateBilan()">GÉNÉRER BILAN RADIO</button>
+                <textarea id="radioText" rows="12" readonly placeholder="Le message apparaîtra ici..."></textarea>
+            </div>
+        </aside>
+    </main>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "triage-cata-pc",
+        databaseURL: "https://triage-cata-pc-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "triage-cata-pc",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const triageRef = ref(db, 'triage_live');
+
+    let state = {
+        mode: "EXERCICE",
+        currentZone: "PRV 1",
+        zones: { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0 } }
+    };
+
+    window.updateMode = (val) => { state.mode = val; save(); };
+    window.changeVal = (cat, n) => {
+        if (!state.zones[state.currentZone]) return;
+        state.zones[state.currentZone][cat] = Math.max(0, state.zones[state.currentZone][cat] + n);
+        save();
+    };
+    window.switchZone = (name) => { state.currentZone = name; render(); save(); };
+    window.addZone = (type) => {
+        let newName = type === 'PRV' ? "PRV " + (Object.keys(state.zones).filter(k => k.startsWith('PRV')).length + 1) : type;
+        if (state.zones[newName]) { alert("Existe déjà."); return; }
+        state.zones[newName] = { red: 0, yellow: 0, green: 0, black: 0 };
+        state.currentZone = newName;
+        save();
+    };
+    window.renameCurrentZone = () => {
+        const oldName = state.currentZone;
+        const newName = prompt("Nouveau nom :", oldName);
+        if (newName && newName !== oldName) {
+            state.zones[newName] = state.zones[oldName];
+            delete state.zones[oldName];
+            state.currentZone = newName;
+            save();
+        }
+    };
+    window.resetAllData = () => {
+        if(confirm("⚠ TOUT EFFACER ?")) {
+            state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0 } };
+            state.currentZone = "PRV 1";
+            save();
+        }
+    };
+
+    function save() { set(triageRef, state); }
+    onValue(triageRef, (snapshot) => { const data = snapshot.val(); if(data) { state = data; render(); } });
+
+    function render() {
+        const isReel = state.mode === "RÉEL";
+        document.getElementById('radioReel').checked = isReel;
+        document.getElementById('radioExo').checked = !isReel;
+        const el = document.getElementById('modeStatus');
+        el.innerText = state.mode + " EN COURS";
+        el.className = "mode-status " + (isReel ? "status-reel" : "status-exercice");
+
+        const tabList = document.getElementById('tabList');
+        let html = Object.keys(state.zones).map(z => `<button class="tab ${z === state.currentZone ? 'active' : ''}" onclick="switchZone('${z}')">${z}</button>`).join('');
+        html += `<button class="tab tab-special" onclick="addZone('PRV')">+ PRV</button>`;
+        if (!state.zones['PMA']) html += `<button class="tab tab-special" onclick="addZone('PMA')">+ PMA</button>`;
+        if (!state.zones['EVAC']) html += `<button class="tab tab-special" onclick="addZone('EVAC')">+ EVAC</button>`;
+        tabList.innerHTML = html;
+
+        document.getElementById('activeTitle').innerText = state.currentZone;
+        const cz = state.zones[state.currentZone] || {red:0, yellow:0, green:0, black:0};
+        document.getElementById('count-red').innerText = cz.red;
+        document.getElementById('count-yellow').innerText = cz.yellow;
+        document.getElementById('count-green').innerText = cz.green;
+        document.getElementById('count-black').innerText = cz.black;
+
+        let globalTotal = 0;
+        let synthHtml = "";
+        Object.keys(state.zones).forEach(z => {
+            const data = state.zones[z];
+            const sum = data.red + data.yellow + data.green + data.black;
+            globalTotal += sum;
+            synthHtml += `<div class="synth-row" onclick="switchZone('${z}')"><span>${z}</span><span><b style="color:var(--red)">${data.red}</b>/<b>${data.yellow}</b>/<b>${data.green}</b>/<b>${data.black}</b></span><strong>${sum}</strong></div>`;
+        });
+        document.getElementById('synthContent').innerHTML = synthHtml;
+        document.getElementById('totalGlobal').innerText = `Total Global : ${globalTotal}`;
+    }
+
+    window.generateBilan = () => {
+        const z = state.zones[state.currentZone];
+        const total = z.red + z.yellow + z.green + z.black;
+        const indicatif = document.getElementById('vlmId').value || "VLM 1";
+        const prefix = state.mode === "EXERCICE" ? "*** EXERCICE ***\n" : "*** RÉEL ***\n";
+        
+        const text = `${prefix}Centre 15, Centre 15,\nDe : ${indicatif}\nSecteur : ${state.currentZone}\n\nJe confirme le lieu et la nature.\nL’intervention ${document.getElementById('secureStatus').value}.\nJe considère la situation ${document.getElementById('evolStatus').value}.\nContexte : ${document.getElementById('contextType').value}.\n\nTotal victimes : ${total}\n- UA (rouge) : ${z.red}\n- UR (jaune) : ${z.yellow}\n- Impliqués (verts) : ${z.green}\n- Dépassés (noir) : ${z.black}\n\n${prefix}*** TERMINÉ ***`;
+        document.getElementById('radioText').value = text;
+    };
+</script>
+</body>
+</html>
