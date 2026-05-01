@@ -2,12 +2,14 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-<link rel="icon" type="image/png" href="favicon.png">
-<link rel="apple-touch-icon" href="favicon.png">
     <title>Triage Opérationnel - PC CATA</title>
-    <!-- Désactivation du zoom pour éviter les sauts d'écran lors des clics rapides -->
+    <!-- Désactivation du zoom et optimisation mobile -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="theme-color" content="#020617">
+    
+    <!-- Icône (Emoji Croix de vie par défaut) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>⚕️</text></svg>">
+
     <style>
         :root {
             --bg: #0f172a; --card-bg: #020617;
@@ -27,11 +29,11 @@
         .datetime-display { font-family: monospace; font-size: 0.8rem; color: var(--accent); background: #1e293b; padding: 5px 10px; border-radius: 6px; }
         
         .mode-bar { flex-grow: 1; display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 15px; border-radius: 12px; border: 1px solid var(--border); }
-        .lock-btn { background: #1e293b; border: 1px solid var(--border); padding: 10px 15px; border-radius: 12px; cursor: pointer; font-size: 1.2rem; }
+        .lock-btn { background: #1e293b; border: 1px solid var(--border); padding: 10px 15px; border-radius: 12px; cursor: pointer; font-size: 1.2rem; transition: all 0.2s; }
         .lock-btn.locked { border-color: var(--yellow); background: rgba(245, 158, 11, 0.1); }
 
         /* Style pour griser les chiffres quand verrouillé */
-        .locked-data { opacity: 0.3 !important; filter: grayscale(1); transition: all 0.3s ease; }
+        .locked-data { opacity: 0.35 !important; filter: grayscale(1); transition: all 0.3s ease; }
 
         .tabs-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 5px; border-bottom: 1px solid var(--border); }
         .tab { padding: 8px 16px; border-radius: 999px; border: 1px solid #374151; background: #020617; color: white; cursor: pointer; white-space: nowrap; font-size: 0.85rem; }
@@ -55,7 +57,9 @@
         .btn-reset { background: transparent; color: var(--red); border: 1px solid var(--red); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; }
         
         .ped-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 0.75rem; color: var(--muted); transition: opacity 0.3s; }
-        .btn-ped { background: #1e293b; border: 1px solid var(--border); color: white; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; }
+        .btn-ped { background: #1e293b; border: 1px solid var(--border); color: white; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        
+        .flex-row { display: flex; gap: 8px; align-items: center; }
     </style>
 </head>
 <body>
@@ -96,7 +100,10 @@
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <input type="text" id="medName" placeholder="MÉDECIN RESPONSABLE" onchange="updateMed(this.value)" class="action-btn" style="border-color: var(--accent);">
-                <input type="text" id="siteLoc" placeholder="LOCALISATION PRÉCISE DU SITE" onchange="updateSiteLoc(this.value)" class="action-btn" style="border-color: var(--accent);">
+                <div class="flex-row">
+                    <input type="text" id="siteLoc" placeholder="LOCALISATION PRÉCISE DU SITE" onchange="updateSiteLoc(this.value)" class="action-btn" style="border-color: var(--accent); margin-bottom:0;">
+                    <button class="btn-ped action-btn" onclick="getGPSLocation('siteLoc')" title="GPS du site" style="background: var(--accent); color: #000;">📍</button>
+                </div>
             </div>
         </div>
     </header>
@@ -105,7 +112,10 @@
         <section>
             <div class="section-box">
                 <div class="section-title">Localisation du Sinistre Global</div>
-                <input type="text" id="locSinistre" placeholder="Adresse précise du sinistre" class="action-btn">
+                <div class="flex-row">
+                    <input type="text" id="locSinistre" placeholder="Adresse précise du sinistre" class="action-btn" style="margin-bottom:0;">
+                    <button class="btn-ped action-btn" onclick="getGPSLocation('locSinistre')" title="Me localiser" style="background: var(--accent); color: #000;">📍</button>
+                </div>
             </div>
 
             <div class="triage-grid">
@@ -134,9 +144,9 @@
             <div class="section-box" style="margin-top:10px;">
                 <div class="section-title">Détail Pédiatrique</div>
                 <div id="ped-area">
-                    <div class="ped-row"><span>0-2 ans</span><div class="ped-controls"><button class="btn-ped action-btn" onclick="changePed('p02', -1)">-</button><span id="count-p02">0</span><button class="btn-ped action-btn" onclick="changePed('p02', 1)">+</button></div></div>
-                    <div class="ped-row"><span>3-10 ans</span><div class="ped-controls"><button class="btn-ped action-btn" onclick="changePed('p310', -1)">-</button><span id="count-p310">0</span><button class="btn-ped action-btn" onclick="changePed('p310', 1)">+</button></div></div>
-                    <div class="ped-row"><span>10-15 ans</span><div class="ped-controls"><button class="btn-ped action-btn" onclick="changePed('p1015', -1)">-</button><span id="count-p1015">0</span><button class="btn-ped action-btn" onclick="changePed('p1015', 1)">+</button></div></div>
+                    <div class="ped-row"><span>0-2 ans</span><div class="ped-controls"><button class="btn-ped action-btn" onclick="changePed('p02', -1)" style="width:24px;height:24px;">-</button><span id="count-p02" style="margin:0 10px;">0</span><button class="btn-ped action-btn" onclick="changePed('p02', 1)" style="width:24px;height:24px;">+</button></div></div>
+                    <div class="ped-row"><span>3-10 ans</span><div class="ped-controls"><button class="btn-ped action-btn" onclick="changePed('p310', -1)" style="width:24px;height:24px;">-</button><span id="count-p310" style="margin:0 10px;">0</span><button class="btn-ped action-btn" onclick="changePed('p310', 1)" style="width:24px;height:24px;">+</button></div></div>
+                    <div class="ped-row"><span>10-15 ans</span><div class="ped-controls"><button class="btn-ped action-btn" onclick="changePed('p1015', -1)" style="width:24px;height:24px;">-</button><span id="count-p1015" style="margin:0 10px;">0</span><button class="btn-ped action-btn" onclick="changePed('p1015', 1)" style="width:24px;height:24px;">+</button></div></div>
                 </div>
             </div>
         </section>
@@ -189,17 +199,13 @@
 
     window.checkPass = () => { if(document.getElementById('passInput').value === "SAMU30") { document.getElementById('loginScreen').style.display = 'none'; document.getElementById('appMain').style.display = 'block'; } };
     
-    window.toggleLock = () => { 
-        isLocked = !isLocked; 
-        applyLockEffects();
-    };
+    window.toggleLock = () => { isLocked = !isLocked; applyLockEffects(); };
 
     function applyLockEffects() {
         document.querySelectorAll('.action-btn').forEach(b => b.disabled = isLocked);
         document.getElementById('lockIcon').innerText = isLocked ? "🔒" : "🔓";
         document.getElementById('lockBtn').className = isLocked ? "lock-btn locked" : "lock-btn";
         
-        // Griser/Dégriser les chiffres
         const counts = document.querySelectorAll('.count-value');
         const peds = document.querySelectorAll('.ped-row');
         
@@ -211,6 +217,29 @@
             peds.forEach(p => p.classList.remove('locked-data'));
         }
     }
+
+    // --- FONCTION GPS ---
+    window.getGPSLocation = (fieldId) => {
+        if (!navigator.geolocation) { alert("GPS non supporté"); return; }
+        const btn = event.currentTarget;
+        btn.innerText = "⌛";
+
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+            const { latitude, longitude } = pos.coords;
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                const data = await res.json();
+                const addr = data.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+                document.getElementById(fieldId).value = addr;
+                if(fieldId === 'siteLoc') updateSiteLoc(addr);
+                btn.innerText = "✅";
+                setTimeout(() => { btn.innerText = "📍"; }, 2000);
+            } catch (e) {
+                document.getElementById(fieldId).value = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+                btn.innerText = "📍";
+            }
+        }, (err) => { btn.innerText = "❌"; setTimeout(() => { btn.innerText = "📍"; }, 2000); }, { enableHighAccuracy: true });
+    };
 
     window.updateMode = (v) => { state.mode = v; save(); };
     window.updateMed = (v) => { state.zones[state.currentZone].med = v; save(); };
@@ -252,37 +281,16 @@
         const prefix = state.mode === "EXERCICE" ? "*** EXERCICE ***\n" : "*** RÉEL ***\n";
         const total = z.red + z.yellow + z.green + z.black;
         const totalPed = (z.p02||0) + (z.p310||0) + (z.p1015||0);
-        
         let typologies = document.getElementById('typo1').value;
         if(document.getElementById('typo2').value) typologies += " + " + document.getElementById('typo2').value;
 
-        let text = `${prefix}`;
-        text += `HORODATAGE : ${new Date().toLocaleString('fr-FR')}\n`;
-        text += `CENTRE 15, DE : ${indicatif}\n\n`;
-        
-        text += `1. JE SUIS (Identification) :\n`;
-        text += `- Secteur : ${state.currentZone} (${z.loc || 'Localisation site non précisée'})\n`;
-        text += `- Responsable : ${z.med || 'À désigner'}\n`;
-        text += `- Sinistre Global : ${document.getElementById('locSinistre').value || 'Non précisée'}\n\n`;
-
-        text += `2. JE VOIS (Situation) :\n`;
-        text += `- Nature/Typologie : ${typologies || 'À préciser'}\n`;
-        text += `- Sécurité : Zone ${document.getElementById('secureStatus').value}\n`;
-        text += `- Bilan Global : ${total} Victimes (UA:${z.red} / UR:${z.yellow} / V:${z.green} / N:${z.black})\n`;
-        if(totalPed > 0) text += `- Dont Pédiatrie : ${totalPed} (0-2a:${z.p02||0}, 3-10a:${z.p310||0}, 10-15a:${z.p1015||0})\n`;
-        text += `\n`;
-
-        text += `3. JE PRÉVOIS (Évolution & Logistique) :\n`;
-        text += `- Point de regroupement (PRM) : ${document.getElementById('locPRM').value || 'Non défini'}\n`;
-        text += `- Évolution : Situation ${document.getElementById('evolStatus').value}\n\n`;
-
-        text += `4. JE FAIS (Actions) :\n`;
-        text += `- Actions : Triage et stabilisation en cours sur ${state.currentZone}\n\n`;
-
-        text += `5. JE DEMANDE (Renforts) :\n`;
-        text += `- Besoin : ${document.getElementById('besoinRenforts').value || 'RAS pour le moment'}\n\n`;
-
-        text += `${prefix}*** TERMINÉ ***`;
+        let text = `${prefix}HORODATAGE : ${new Date().toLocaleString('fr-FR')}\nCENTRE 15, DE : ${indicatif}\n\n`;
+        text += `1. JE SUIS :\n- Secteur : ${state.currentZone} (${z.loc || 'N/C'})\n- Responsable : ${z.med || 'À désigner'}\n- Sinistre Global : ${document.getElementById('locSinistre').value || 'N/C'}\n\n`;
+        text += `2. JE VOIS :\n- Nature : ${typologies || 'À préciser'}\n- Sécurité : ${document.getElementById('secureStatus').value}\n- Bilan : ${total} Victimes (UA:${z.red}/UR:${z.yellow}/V:${z.green}/N:${z.black})\n`;
+        if(totalPed > 0) text += `- Dont Péd : ${totalPed} (0-2a:${z.p02||0}, 3-10a:${z.p310||0}, 10-15a:${z.p1015||0})\n`;
+        text += `\n3. JE PRÉVOIS :\n- PRM : ${document.getElementById('locPRM').value || 'Non défini'}\n- Évolution : ${document.getElementById('evolStatus').value}\n\n`;
+        text += `4. JE FAIS : Triage et stabilisation sur ${state.currentZone}\n\n`;
+        text += `5. JE DEMANDE : ${document.getElementById('besoinRenforts').value || 'RAS'}\n\n${prefix}*** TERMINÉ ***`;
         document.getElementById('radioText').value = text;
     };
 </script>
