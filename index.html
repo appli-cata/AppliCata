@@ -97,7 +97,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <input type="text" id="medName" placeholder="MÉDECIN RESPONSABLE" oninput="updateMed(this.value)" class="action-btn" style="border-color: var(--accent);">
                 <div class="flex-row">
-                    <input type="text" id="siteLoc" placeholder="LOCALISATION PRÉCISE DU SITE" oninput="updateSiteLoc(this.value)" class="action-btn" style="border-color: var(--accent); margin-bottom:0;">
+                    <input type="text" id="siteLoc" placeholder="LOCALISATION SITE" oninput="updateSiteLoc(this.value)" class="action-btn" style="border-color: var(--accent); margin-bottom:0;">
                     <button class="btn-ped action-btn" onclick="getGPSLocation('siteLoc')" title="GPS du site" style="background: var(--accent); color: #000;">📍</button>
                 </div>
             </div>
@@ -109,7 +109,7 @@
             <div class="section-box">
                 <div class="section-title">Localisation du Sinistre Global</div>
                 <div class="flex-row">
-                    <input type="text" id="locSinistre" placeholder="Adresse précise du sinistre" oninput="updateGlobalLoc(this.value)" class="action-btn" style="margin-bottom:0;">
+                    <input type="text" id="locSinistre" placeholder="Adresse du sinistre" oninput="updateGlobalLoc(this.value)" class="action-btn" style="margin-bottom:0;">
                     <button class="btn-ped action-btn" onclick="getGPSLocation('locSinistre')" title="Me localiser" style="background: var(--accent); color: #000;">📍</button>
                 </div>
             </div>
@@ -208,19 +208,28 @@
         counts.forEach(c => isLocked ? c.classList.add('locked-data') : c.classList.remove('locked-data'));
     }
 
-    // Fonction de nettoyage de l'adresse (Enlève Région et Pays)
-    function cleanAddress(addr) {
-        if(!addr) return "";
-        // Liste des termes à supprimer
-        const toRemove = [
-            "France métropolitaine", 
-            "France", 
-            "Occitanie", 
-            "Auvergne-Rhône-Alpes", "Bourgogne-Franche-Comté", "Bretagne", "Centre-Val de Loire", "Corse", "Grand Est", "Hauts-de-France", "Île-de-France", "Normandie", "Nouvelle-Aquitaine", "Pays de la Loire", "Provence-Alpes-Côte d'Azur"
-        ];
+    // FONCTION DE NETTOYAGE OPÉRATIONNEL (Rue, Ville + GPS)
+    function cleanAddress(addr, lat, lon) {
+        if(!addr) return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+        
+        // Supprimer codes pays/techniques
+        addr = addr.replace(/[A-Z]{2}\*[A-Z0-9\*]+\*/g, '');
+
+        const toRemove = ["France métropolitaine", "France", "Occitanie", "Gard"];
         let parts = addr.split(',').map(p => p.trim());
-        let filtered = parts.filter(p => !toRemove.some(rem => p.toLowerCase() === rem.toLowerCase()));
-        return filtered.join(', ');
+        
+        // Garder uniquement Numéro, Rue, Quartier et Ville
+        let filtered = parts.filter(p => {
+            const isPostalCode = /^\d{5}$/.test(p);
+            const isBroadArea = toRemove.some(rem => p.toLowerCase() === rem.toLowerCase());
+            return !isPostalCode && !isBroadArea && p.length > 0;
+        });
+
+        // On ne garde que les 3 éléments les plus précis (ex: 21 Rue Pujol, Nîmes)
+        let cleanAddr = filtered.slice(0, 3).join(', ');
+        
+        // On ajoute les coordonnées GPS au format court pour la radio
+        return `${cleanAddr} [GPS: ${lat.toFixed(4)}, ${lon.toFixed(4)}]`;
     }
 
     window.getGPSLocation = (fieldId) => {
@@ -232,17 +241,18 @@
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
                 const data = await res.json();
-                let addr = data.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
                 
-                // Nettoyage de l'adresse
-                addr = cleanAddress(addr);
+                let addr = cleanAddress(data.display_name, latitude, longitude);
+                
+                // On ajoute le lien Maps pour le copier-coller facile dans le champ
+                let finalVal = addr + ` (https://www.google.com/maps?q=${latitude},${longitude})`;
 
-                document.getElementById(fieldId).value = addr;
-                if(fieldId === 'siteLoc') updateSiteLoc(addr);
-                if(fieldId === 'locSinistre') updateGlobalLoc(addr);
+                document.getElementById(fieldId).value = finalVal;
+                if(fieldId === 'siteLoc') updateSiteLoc(finalVal);
+                if(fieldId === 'locSinistre') updateGlobalLoc(finalVal);
                 btn.innerText = "✅"; setTimeout(() => { btn.innerText = "📍"; }, 2000);
             } catch (e) {
-                const coords = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+                const coords = `GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
                 document.getElementById(fieldId).value = coords;
                 btn.innerText = "📍";
             }
@@ -307,7 +317,7 @@
         if(document.getElementById('typo2').value) typologies += " + " + document.getElementById('typo2').value;
 
         let text = `${prefix}HORODATAGE : ${new Date().toLocaleString('fr-FR')}\nSAMU 30, DE : ${indicatif}\n\n`;
-        text += `1. JE SUIS :\n- Secteur : ${localCurrentZone} (${z.loc || 'N/C'})\n- Responsable : ${z.med || 'À désigner'}\n- Sinistre Global : ${state.globalLoc || 'N/C'}\n\n`;
+        text += `1. JE SUIS :\n- Secteur : ${localCurrentZone}\n- Pos : ${z.loc || 'N/C'}\n- Resp : ${z.med || 'À désigner'}\n- Sinistre : ${state.globalLoc || 'N/C'}\n\n`;
         text += `2. JE VOIS :\n- Nature : ${typologies || 'À préciser'}\n- Sécurité : ${document.getElementById('secureStatus').value}\n- Bilan : ${total} Victimes (UA:${z.red}/UR:${z.yellow}/V:${z.green}/N:${z.black})\n`;
         if(totalPed > 0) text += `- Dont Péd : ${totalPed} (0-2a:${z.p02||0}, 3-10a:${z.p310||0}, 10-15a:${z.p1015||0})\n`;
         text += `\n3. JE PRÉVOIS :\n- PRM : ${document.getElementById('locPRM').value || 'Non défini'}\n- Évolution : ${document.getElementById('evolStatus').value}\n\n`;
