@@ -160,7 +160,7 @@
                     <select id="typo1" class="local-saisie"><option value="">-- Typologie 1 --</option></select>
                     <select id="typo2" class="local-saisie"><option value="">-- Typologie 2 --</option></select>
                 </div>
-                <input type="text" id="vlmId" value="VLM 1" placeholder="Mon Indicatif" class="local-saisie">
+                <input type="text" id="vlmId" value="SMUR 1" placeholder="Mon Indicatif" class="local-saisie">
                 <textarea id="besoinRenforts" rows="1" placeholder="Besoin en renforts..." class="local-saisie" style="min-height: 40px;"></textarea>
                 <select id="secureStatus" class="local-saisie"><option value="SÉCURISÉE">Zone SÉCURISÉE</option><option value="NON SÉCURISÉE">Zone NON SÉCURISÉE</option></select>
                 <button class="btn-primary" onclick="generateBilan()">GÉNÉRER SEQUENCE RADIO</button>
@@ -180,11 +180,9 @@
     const db = getDatabase(app);
     const triageRef = ref(db, 'triage_live');
 
-    // VARIABLES LOCALES (ne sont pas synchronisées)
     let isLocked = true;
     let localCurrentZone = "PRV 1"; 
 
-    // STATE GLOBAL (Synchronisé)
     let state = { 
         mode: "EXERCICE", 
         globalLoc: "",
@@ -210,6 +208,21 @@
         counts.forEach(c => isLocked ? c.classList.add('locked-data') : c.classList.remove('locked-data'));
     }
 
+    // Fonction de nettoyage de l'adresse (Enlève Région et Pays)
+    function cleanAddress(addr) {
+        if(!addr) return "";
+        // Liste des termes à supprimer
+        const toRemove = [
+            "France métropolitaine", 
+            "France", 
+            "Occitanie", 
+            "Auvergne-Rhône-Alpes", "Bourgogne-Franche-Comté", "Bretagne", "Centre-Val de Loire", "Corse", "Grand Est", "Hauts-de-France", "Île-de-France", "Normandie", "Nouvelle-Aquitaine", "Pays de la Loire", "Provence-Alpes-Côte d'Azur"
+        ];
+        let parts = addr.split(',').map(p => p.trim());
+        let filtered = parts.filter(p => !toRemove.some(rem => p.toLowerCase() === rem.toLowerCase()));
+        return filtered.join(', ');
+    }
+
     window.getGPSLocation = (fieldId) => {
         if (!navigator.geolocation) return;
         const btn = event.currentTarget;
@@ -219,7 +232,11 @@
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
                 const data = await res.json();
-                const addr = data.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+                let addr = data.display_name || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
+                
+                // Nettoyage de l'adresse
+                addr = cleanAddress(addr);
+
                 document.getElementById(fieldId).value = addr;
                 if(fieldId === 'siteLoc') updateSiteLoc(addr);
                 if(fieldId === 'locSinistre') updateGlobalLoc(addr);
@@ -227,13 +244,11 @@
             } catch (e) {
                 const coords = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`;
                 document.getElementById(fieldId).value = coords;
-                if(fieldId === 'siteLoc') updateSiteLoc(coords);
                 btn.innerText = "📍";
             }
         }, () => btn.innerText = "📍", { enableHighAccuracy: true });
     };
 
-    // Fonctions de sauvegarde Firebase
     window.updateMode = (v) => { state.mode = v; save(); };
     window.updateGlobalLoc = (v) => { state.globalLoc = v; save(); };
     window.updateMed = (v) => { state.zones[localCurrentZone].med = v; save(); };
@@ -241,7 +256,6 @@
     window.changeVal = (c, n) => { if (!isLocked) { state.zones[localCurrentZone][c] = Math.max(0, state.zones[localCurrentZone][c] + n); save(); } };
     window.changePed = (c, n) => { if (!isLocked) { state.zones[localCurrentZone][c] = Math.max(0, (state.zones[localCurrentZone][c]||0) + n); save(); } };
     
-    // NAVIGATION LOCALE
     window.switchZone = (n) => { localCurrentZone = n; render(); };
 
     window.addZone = (prefix) => {
@@ -253,7 +267,16 @@
     };
 
     window.renameCurrentZone = () => { if(!isLocked) { const old = localCurrentZone; const n = prompt("Nom :", old); if (n && n !== old) { state.zones[n] = state.zones[old]; delete state.zones[old]; localCurrentZone = n; save(); } } };
-    window.resetAllData = () => { if(!isLocked && confirm("Réinitialiser ?")) { state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", p02:0, p310:0, p1015:0 } }; localCurrentZone = "PRV 1"; save(); } };
+    
+    window.resetAllData = () => { 
+        if(!isLocked && confirm("Réinitialiser toutes les données ?")) { 
+            state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", p02:0, p310:0, p1015:0 } }; 
+            localCurrentZone = "PRV 1"; 
+            state.globalLoc = "";
+            document.getElementById('radioText').value = "";
+            save(); 
+        } 
+    };
 
     function save() { set(triageRef, state); }
     onValue(triageRef, (s) => { const d = s.val(); if(d) { state = d; render(); } });
@@ -261,16 +284,11 @@
     function render() {
         document.getElementById('modeStatus').innerText = state.mode;
         document.getElementById('locSinistre').value = state.globalLoc || "";
-        
-        // Render des onglets
         const tabList = document.getElementById('tabList');
         let h = Object.keys(state.zones).map(z => `<button class="tab ${z === localCurrentZone ? 'active' : ''}" onclick="switchZone('${z}')">${z}</button>`).join('');
         h += `<button class="tab btn-add action-btn" onclick="addZone('PRV')">+ PRV</button><button class="tab btn-add action-btn" onclick="addZone('PMA')">+ PMA</button>`;
         tabList.innerHTML = h;
-
-        // Si la zone n'existe plus (ex: RAZ), on revient sur la première
         if(!state.zones[localCurrentZone]) localCurrentZone = Object.keys(state.zones)[0];
-        
         document.getElementById('activeTitle').innerText = localCurrentZone;
         const cz = state.zones[localCurrentZone];
         ['red','yellow','green','black','p02','p310','p1015'].forEach(c => { document.getElementById('count-'+c).innerText = cz[c] || 0; });
@@ -281,14 +299,14 @@
 
     window.generateBilan = () => {
         const z = state.zones[localCurrentZone];
-        const indicatif = document.getElementById('vlmId').value || "VLM 1";
+        const indicatif = document.getElementById('vlmId').value || "SMUR 1";
         const prefix = state.mode === "EXERCICE" ? "*** EXERCICE ***\n" : "*** RÉEL ***\n";
         const total = z.red + z.yellow + z.green + z.black;
         const totalPed = (z.p02||0) + (z.p310||0) + (z.p1015||0);
         let typologies = document.getElementById('typo1').value;
         if(document.getElementById('typo2').value) typologies += " + " + document.getElementById('typo2').value;
 
-        let text = `${prefix}HORODATAGE : ${new Date().toLocaleString('fr-FR')}\nCENTRE 15, DE : ${indicatif}\n\n`;
+        let text = `${prefix}HORODATAGE : ${new Date().toLocaleString('fr-FR')}\nSAMU 30, DE : ${indicatif}\n\n`;
         text += `1. JE SUIS :\n- Secteur : ${localCurrentZone} (${z.loc || 'N/C'})\n- Responsable : ${z.med || 'À désigner'}\n- Sinistre Global : ${state.globalLoc || 'N/C'}\n\n`;
         text += `2. JE VOIS :\n- Nature : ${typologies || 'À préciser'}\n- Sécurité : ${document.getElementById('secureStatus').value}\n- Bilan : ${total} Victimes (UA:${z.red}/UR:${z.yellow}/V:${z.green}/N:${z.black})\n`;
         if(totalPed > 0) text += `- Dont Péd : ${totalPed} (0-2a:${z.p02||0}, 3-10a:${z.p310||0}, 10-15a:${z.p1015||0})\n`;
