@@ -53,9 +53,11 @@
         .btn-reset { background: transparent; color: var(--red); border: 1px solid var(--red); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; }
         
         .ped-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 0.75rem; color: var(--muted); transition: opacity 0.3s; }
-        .btn-ped { background: #1e293b; border: 1px solid var(--border); color: white; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .btn-ped { background: #1e293b; border: 1px solid var(--border); color: white; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
         
-        .flex-row { display: flex; gap: 8px; align-items: center; }
+        .flex-row { display: flex; gap: 4px; align-items: center; }
+        .map-link-btn { background: #0ea5e9 !important; color: white !important; font-size: 0.7rem !important; opacity: 0.5; pointer-events: none; }
+        .map-link-btn.active { opacity: 1; pointer-events: auto; }
     </style>
 </head>
 <body>
@@ -90,15 +92,16 @@
         <div style="background: rgba(56, 189, 248, 0.05); padding: 10px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 10px;">
             <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
                 <h1 id="activeTitle" style="color: white; font-size: 1.4rem;">PRV 1</h1>
-                <button class="btn-reset action-btn" onclick="renameCurrentZone()">✎ Renommer</button>
+                <button class="btn-reset action-btn" onclick="renameCurrentZone()">✎</button>
                 <div style="flex-grow: 1;"></div>
-                <button class="btn-reset action-btn" onclick="resetAllData()">RÀZ GÉNÉRALE</button>
+                <button class="btn-reset action-btn" onclick="resetAllData()">RÀZ</button>
             </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <input type="text" id="medName" placeholder="MÉDECIN RESPONSABLE" oninput="updateMed(this.value)" class="action-btn" style="border-color: var(--accent);">
                 <div class="flex-row">
                     <input type="text" id="siteLoc" placeholder="LOCALISATION SITE" oninput="updateSiteLoc(this.value)" class="action-btn" style="border-color: var(--accent); margin-bottom:0;">
-                    <button class="btn-ped action-btn" onclick="getGPSLocation('siteLoc')" title="GPS du site" style="background: var(--accent); color: #000;">📍</button>
+                    <button class="btn-ped action-btn" onclick="getGPSLocation('siteLoc')" title="GPS">📍</button>
+                    <button id="openSiteMap" class="btn-ped map-link-btn action-btn" onclick="openStoredMap(this)" title="Ouvrir Maps">🗺️</button>
                 </div>
             </div>
         </div>
@@ -110,7 +113,8 @@
                 <div class="section-title">Localisation du Sinistre Global</div>
                 <div class="flex-row">
                     <input type="text" id="locSinistre" placeholder="Adresse du sinistre" oninput="updateGlobalLoc(this.value)" class="action-btn" style="margin-bottom:0;">
-                    <button class="btn-ped action-btn" onclick="getGPSLocation('locSinistre')" title="Me localiser" style="background: var(--accent); color: #000;">📍</button>
+                    <button class="btn-ped action-btn" onclick="getGPSLocation('locSinistre')" title="Me localiser">📍</button>
+                    <button id="openGlobalMap" class="btn-ped map-link-btn action-btn" onclick="openStoredMap(this)" title="Ouvrir Maps">🗺️</button>
                 </div>
             </div>
 
@@ -186,7 +190,8 @@
     let state = { 
         mode: "EXERCICE", 
         globalLoc: "",
-        zones: { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", p02:0, p310:0, p1015:0 } } 
+        globalGPSUrl: "",
+        zones: { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", gpsUrl: "", p02:0, p310:0, p1015:0 } } 
     };
 
     const typs = ["Plaies par balles", "Plaies par arme blanche", "AVP – traumatologie", "Accident train", "Accident avion", "Incendie / explosion", "Intoxications", "Risque NRBC", "Catastrophe naturelle", "Autre"];
@@ -208,28 +213,19 @@
         counts.forEach(c => isLocked ? c.classList.add('locked-data') : c.classList.remove('locked-data'));
     }
 
-    // FONCTION DE NETTOYAGE OPÉRATIONNEL (Rue, Ville + GPS)
-    function cleanAddress(addr, lat, lon) {
-        if(!addr) return `${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-        
-        // Supprimer codes pays/techniques
-        addr = addr.replace(/[A-Z]{2}\*[A-Z0-9\*]+\*/g, '');
+    // Ouvre l'URL stockée dans le bouton
+    window.openStoredMap = (btn) => {
+        const url = btn.getAttribute('data-url');
+        if (url) window.open(url, '_blank');
+    };
 
+    function cleanAddressOnly(addr) {
+        if(!addr) return "";
+        addr = addr.replace(/[A-Z]{2}\*[A-Z0-9\*]+\*/g, '');
         const toRemove = ["France métropolitaine", "France", "Occitanie", "Gard"];
         let parts = addr.split(',').map(p => p.trim());
-        
-        // Garder uniquement Numéro, Rue, Quartier et Ville
-        let filtered = parts.filter(p => {
-            const isPostalCode = /^\d{5}$/.test(p);
-            const isBroadArea = toRemove.some(rem => p.toLowerCase() === rem.toLowerCase());
-            return !isPostalCode && !isBroadArea && p.length > 0;
-        });
-
-        // On ne garde que les 3 éléments les plus précis (ex: 21 Rue Pujol, Nîmes)
-        let cleanAddr = filtered.slice(0, 3).join(', ');
-        
-        // On ajoute les coordonnées GPS au format court pour la radio
-        return `${cleanAddr} [GPS: ${lat.toFixed(4)}, ${lon.toFixed(4)}]`;
+        let filtered = parts.filter(p => !/^\d{5}$/.test(p) && !toRemove.some(rem => p.toLowerCase() === rem.toLowerCase()) && p.length > 0);
+        return filtered.slice(0, 3).join(', ');
     }
 
     window.getGPSLocation = (fieldId) => {
@@ -238,22 +234,26 @@
         btn.innerText = "⌛";
         navigator.geolocation.getCurrentPosition(async (pos) => {
             const { latitude, longitude } = pos.coords;
+            const gpsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
                 const data = await res.json();
-                
-                let addr = cleanAddress(data.display_name, latitude, longitude);
-                
-                // On ajoute le lien Maps pour le copier-coller facile dans le champ
-                let finalVal = addr + ` (https://www.google.com/maps?q=${latitude},${longitude})`;
+                let cleanAddr = cleanAddressOnly(data.display_name) || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
 
-                document.getElementById(fieldId).value = finalVal;
-                if(fieldId === 'siteLoc') updateSiteLoc(finalVal);
-                if(fieldId === 'locSinistre') updateGlobalLoc(finalVal);
+                document.getElementById(fieldId).value = cleanAddr;
+                
+                if(fieldId === 'siteLoc') {
+                    state.zones[localCurrentZone].loc = cleanAddr;
+                    state.zones[localCurrentZone].gpsUrl = gpsUrl;
+                } else {
+                    state.globalLoc = cleanAddr;
+                    state.globalGPSUrl = gpsUrl;
+                }
+                save();
                 btn.innerText = "✅"; setTimeout(() => { btn.innerText = "📍"; }, 2000);
             } catch (e) {
-                const coords = `GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-                document.getElementById(fieldId).value = coords;
+                const fallback = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+                document.getElementById(fieldId).value = fallback;
                 btn.innerText = "📍";
             }
         }, () => btn.innerText = "📍", { enableHighAccuracy: true });
@@ -271,7 +271,7 @@
     window.addZone = (prefix) => {
         if(isLocked) return;
         let n = prefix + " " + (Object.keys(state.zones).filter(k => k.startsWith(prefix)).length + 1);
-        state.zones[n] = { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", p02:0, p310:0, p1015:0 }; 
+        state.zones[n] = { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", gpsUrl: "", p02:0, p310:0, p1015:0 }; 
         localCurrentZone = n; 
         save();
     };
@@ -280,9 +280,10 @@
     
     window.resetAllData = () => { 
         if(!isLocked && confirm("Réinitialiser toutes les données ?")) { 
-            state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", p02:0, p310:0, p1015:0 } }; 
+            state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", gpsUrl: "", p02:0, p310:0, p1015:0 } }; 
             localCurrentZone = "PRV 1"; 
             state.globalLoc = "";
+            state.globalGPSUrl = "";
             document.getElementById('radioText').value = "";
             save(); 
         } 
@@ -294,16 +295,38 @@
     function render() {
         document.getElementById('modeStatus').innerText = state.mode;
         document.getElementById('locSinistre').value = state.globalLoc || "";
+        
+        // Mise à jour bouton Map Global
+        const btnGlobal = document.getElementById('openGlobalMap');
+        if(state.globalGPSUrl) {
+            btnGlobal.setAttribute('data-url', state.globalGPSUrl);
+            btnGlobal.classList.add('active');
+        } else {
+            btnGlobal.classList.remove('active');
+        }
+
         const tabList = document.getElementById('tabList');
         let h = Object.keys(state.zones).map(z => `<button class="tab ${z === localCurrentZone ? 'active' : ''}" onclick="switchZone('${z}')">${z}</button>`).join('');
         h += `<button class="tab btn-add action-btn" onclick="addZone('PRV')">+ PRV</button><button class="tab btn-add action-btn" onclick="addZone('PMA')">+ PMA</button>`;
         tabList.innerHTML = h;
+        
         if(!state.zones[localCurrentZone]) localCurrentZone = Object.keys(state.zones)[0];
         document.getElementById('activeTitle').innerText = localCurrentZone;
+        
         const cz = state.zones[localCurrentZone];
         ['red','yellow','green','black','p02','p310','p1015'].forEach(c => { document.getElementById('count-'+c).innerText = cz[c] || 0; });
         document.getElementById('medName').value = cz.med || "";
         document.getElementById('siteLoc').value = cz.loc || "";
+
+        // Mise à jour bouton Map Site
+        const btnSite = document.getElementById('openSiteMap');
+        if(cz.gpsUrl) {
+            btnSite.setAttribute('data-url', cz.gpsUrl);
+            btnSite.classList.add('active');
+        } else {
+            btnSite.classList.remove('active');
+        }
+
         applyLockEffects();
     }
 
