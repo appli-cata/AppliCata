@@ -2,8 +2,9 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Triage Multi-Zones - PC CATA</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Triage Opérationnel - PC CATA</title>
+    <!-- Désactivation du zoom pour éviter les sauts d'écran lors des clics rapides -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
     <meta name="theme-color" content="#020617">
     <style>
         :root {
@@ -12,159 +13,152 @@
             --red: #ef4444; --yellow: #f59e0b; --green: #22c55e;
             --black: #111827; --accent: #38bdf8;
         }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; }
-        body {
-            background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%);
-            color: var(--text); min-height: 100vh; display: flex; justify-content: center; padding: 10px;
-        }
-
-        /* Écran Login */
-        #loginScreen {
-            position: fixed; inset: 0; background: var(--bg); z-index: 9999;
-            display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; touch-action: manipulation; }
+        body { background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%); color: var(--text); min-height: 100vh; display: flex; justify-content: center; padding: 10px; overflow-x: hidden; }
+        
+        #loginScreen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
         .login-box { background: var(--card-bg); padding: 30px; border-radius: 20px; border: 1px solid var(--border); text-align: center; width: 100%; max-width: 400px; }
 
-        /* App Layout */
-        .app {
-            max-width: 1200px; width: 100%; background: rgba(15, 23, 42, 0.98);
-            border-radius: 18px; padding: 14px; box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65);
-            border: 1px solid rgba(55, 65, 81, 0.8); backdrop-filter: blur(12px);
-            display: none;
-        }
+        .app { max-width: 1250px; width: 100%; background: rgba(15, 23, 42, 0.98); border-radius: 18px; padding: 14px; box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65); border: 1px solid rgba(55, 65, 81, 0.8); backdrop-filter: blur(12px); display: none; }
         
-        .header-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 15px; }
-        .mode-bar {
-            flex-grow: 1; display: flex; justify-content: space-between; align-items: center;
-            background: #1e293b; padding: 10px 15px; border-radius: 12px; border: 1px solid var(--border);
-        }
-        .lock-btn {
-            background: #1e293b; border: 1px solid var(--border); padding: 10px 15px; 
-            border-radius: 12px; cursor: pointer; font-size: 1.2rem; display: flex; align-items: center;
-        }
+        .header-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .datetime-display { font-family: monospace; font-size: 0.8rem; color: var(--accent); background: #1e293b; padding: 5px 10px; border-radius: 6px; }
+        
+        .mode-bar { flex-grow: 1; display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 15px; border-radius: 12px; border: 1px solid var(--border); }
+        .lock-btn { background: #1e293b; border: 1px solid var(--border); padding: 10px 15px; border-radius: 12px; cursor: pointer; font-size: 1.2rem; }
         .lock-btn.locked { border-color: var(--yellow); background: rgba(245, 158, 11, 0.1); }
 
-        .mode-status { padding: 4px 12px; border-radius: 6px; font-size: 0.8rem; text-transform: uppercase; font-weight: bold; }
-        .status-exercice { background: #38bdf8; color: #020617; }
-        .status-reel { background: #ef4444; color: white; animation: blink 1.5s infinite; }
-        @keyframes blink { 50% { opacity: 0.6; } }
+        /* Style pour griser les chiffres quand verrouillé */
+        .locked-data { opacity: 0.3 !important; filter: grayscale(1); transition: all 0.3s ease; }
 
-        .tabs-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid var(--border); }
-        .tab {
-            padding: 8px 16px; border-radius: 999px; border: 1px solid #374151;
-            background: #020617; color: white; cursor: pointer; white-space: nowrap; font-size: 0.85rem;
-        }
+        .tabs-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 5px; border-bottom: 1px solid var(--border); }
+        .tab { padding: 8px 16px; border-radius: 999px; border: 1px solid #374151; background: #020617; color: white; cursor: pointer; white-space: nowrap; font-size: 0.85rem; }
         .tab.active { background: linear-gradient(135deg, #22c55e, #0ea5e9); color: #020617; font-weight: bold; }
-        .tab-special { border: 1px dashed var(--accent); color: var(--accent); }
+        .btn-add { background: #1e293b; border: 1px dashed var(--accent); color: var(--accent); }
 
-        main { display: grid; grid-template-columns: 1fr 350px; gap: 15px; }
+        main { display: grid; grid-template-columns: 1fr 420px; gap: 15px; }
         @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
 
         .triage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .category-card {
-            background: #020617; border: 1px solid var(--border); padding: 15px; border-radius: 16px;
-            display: flex; flex-direction: column; justify-content: space-between;
-        }
-        .count-value { font-size: 2.8rem; font-weight: 800; text-align: center; margin: 10px 0; }
+        .category-card { background: #020617; border: 1px solid var(--border); padding: 12px; border-radius: 16px; }
+        .count-value { font-size: 2.2rem; font-weight: 800; text-align: center; margin: 5px 0; transition: opacity 0.3s; }
         .card-btns { display: flex; gap: 8px; }
-        .btn-counter { flex: 1; padding: 15px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; background: #1e293b; color: white; font-size: 1.4rem; }
-        .btn-counter:disabled { opacity: 0.2; cursor: not-allowed; }
+        .btn-counter { flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; background: #1e293b; color: white; font-size: 1.2rem; }
 
-        .panel { display: flex; flex-direction: column; gap: 15px; }
-        .section-box { background: #020617; border: 1px solid var(--border); padding: 15px; border-radius: 16px; }
-        .section-title { color: var(--accent); font-size: 0.75rem; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .section-box { background: #020617; border: 1px solid var(--border); padding: 12px; border-radius: 16px; margin-bottom: 10px; }
+        .section-title { color: var(--accent); font-size: 0.7rem; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
         
-        .synth-row { display: flex; justify-content: space-between; font-size: 0.85rem; padding: 6px 0; border-bottom: 1px solid #1f2937; }
-        .total-global { font-size: 1.3rem; font-weight: 800; color: var(--accent); margin-top: 10px; text-align: right; }
-
-        input, select, textarea { 
-            width: 100%; background: #0f172a; border: 1px solid #334155; color: white; 
-            padding: 10px; border-radius: 8px; margin-bottom: 8px; font-size: 0.85rem;
-        }
-        .btn-primary { background: linear-gradient(135deg, #0ea5e9, #22c55e); color: #020617; font-weight: bold; padding: 12px; border: none; border-radius: 8px; width: 100%; cursor: pointer; }
-        .btn-reset { background: transparent; color: var(--red); border: 1px solid var(--red); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; font-weight: bold; }
+        input, select, textarea { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; margin-bottom: 6px; font-size: 0.8rem; }
+        .btn-primary { background: linear-gradient(135deg, #0ea5e9, #22c55e); color: #020617; font-weight: bold; padding: 12px; border: none; border-radius: 8px; width: 100%; cursor: pointer; margin-top: 5px; }
+        .btn-reset { background: transparent; color: var(--red); border: 1px solid var(--red); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; }
+        
+        .ped-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 0.75rem; color: var(--muted); transition: opacity 0.3s; }
+        .btn-ped { background: #1e293b; border: 1px solid var(--border); color: white; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<!-- Écran Login -->
 <div id="loginScreen">
     <div class="login-box">
-        <h2 style="margin-bottom: 20px; color: var(--accent);">Accès Restreint</h2>
-        <input type="password" id="passInput" placeholder="Code d'accès" style="text-align: center;">
-        <button class="btn-primary" onclick="checkPass()">ENTRER</button>
-        <p id="loginError" style="color: var(--red); margin-top: 10px; font-size: 0.8rem; display: none;">Code incorrect</p>
+        <h2 style="margin-bottom: 20px; color: var(--accent);">Accès SAMU 30</h2>
+        <input type="password" id="passInput" placeholder="Mot de passe" style="text-align: center; font-size: 1.2rem;">
+        <button class="btn-primary" onclick="checkPass()">CONNEXION</button>
     </div>
 </div>
 
 <div class="app" id="appMain">
     <div class="header-top">
+        <div id="clock" class="datetime-display">--/--/---- --:--:--</div>
+        <button id="lockBtn" class="lock-btn locked" onclick="toggleLock()"><span id="lockIcon">🔒</span></button>
+    </div>
+
+    <div class="header-top">
         <div class="mode-bar">
-            <div class="mode-toggle">
+            <div style="display:flex; gap:10px;">
                 <label><input type="radio" name="mode" value="EXERCICE" checked id="radioExo" onchange="updateMode('EXERCICE')"> EXO</label>
                 <label><input type="radio" name="mode" value="RÉEL" id="radioReel" onchange="updateMode('RÉEL')"> RÉEL</label>
             </div>
-            <div id="modeStatus" class="mode-status status-exercice">EXERCICE</div>
+            <div id="modeStatus" style="font-weight:bold; font-size:0.8rem;">EXERCICE</div>
         </div>
-        <button id="lockBtn" class="lock-btn locked" onclick="toggleLock()">
-            <span id="lockIcon">🔒</span>
-        </button>
     </div>
 
     <header>
         <div class="tabs-container" id="tabList"></div>
-        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-            <h1 id="activeTitle" style="color: white; font-size: 1.6rem;">PRV 1</h1>
-            <button class="btn-reset action-btn" onclick="renameCurrentZone()">✎ Renommer</button>
-            <div style="flex-grow: 1;"></div>
-            <button class="btn-reset action-btn" onclick="resetAllData()">RÀZ GÉNÉRALE</button>
-        </div>
-        <div class="section-box" style="margin-bottom: 15px; padding: 10px;">
-            <div class="section-title" style="margin-bottom: 5px;">Médecin Responsable Zone</div>
-            <input type="text" id="medName" placeholder="Nom du médecin..." onchange="updateMed(this.value)" class="action-btn">
+        
+        <div style="background: rgba(56, 189, 248, 0.05); padding: 10px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                <h1 id="activeTitle" style="color: white; font-size: 1.4rem;">PRV 1</h1>
+                <button class="btn-reset action-btn" onclick="renameCurrentZone()">✎ Renommer</button>
+                <div style="flex-grow: 1;"></div>
+                <button class="btn-reset action-btn" onclick="resetAllData()">RÀZ GÉNÉRALE</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="text" id="medName" placeholder="MÉDECIN RESPONSABLE" onchange="updateMed(this.value)" class="action-btn" style="border-color: var(--accent);">
+                <input type="text" id="siteLoc" placeholder="LOCALISATION PRÉCISE DU SITE" onchange="updateSiteLoc(this.value)" class="action-btn" style="border-color: var(--accent);">
+            </div>
         </div>
     </header>
 
     <main>
-        <section class="triage-grid">
-            <div class="category-card" style="border-top: 4px solid var(--red);">
-                <div class="section-title">URGENCE ABSOLUE (R)</div>
-                <div class="count-value" id="count-red">0</div>
-                <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('red', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('red', 1)">+</button></div>
+        <section>
+            <div class="section-box">
+                <div class="section-title">Localisation du Sinistre Global</div>
+                <input type="text" id="locSinistre" placeholder="Adresse précise du sinistre" class="action-btn">
             </div>
-            <div class="category-card" style="border-top: 4px solid var(--yellow);">
-                <div class="section-title">URGENCE RELATIVE (J)</div>
-                <div class="count-value" id="count-yellow">0</div>
-                <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('yellow', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('yellow', 1)">+</button></div>
+
+            <div class="triage-grid">
+                <div class="category-card" style="border-top: 4px solid var(--red);">
+                    <div class="section-title">UA (Rouge)</div>
+                    <div class="count-value" id="count-red">0</div>
+                    <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('red', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('red', 1)">+</button></div>
+                </div>
+                <div class="category-card" style="border-top: 4px solid var(--yellow);">
+                    <div class="section-title">UR (Jaune)</div>
+                    <div class="count-value" id="count-yellow">0</div>
+                    <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('yellow', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('yellow', 1)">+</button></div>
+                </div>
+                <div class="category-card" style="border-top: 4px solid var(--green);">
+                    <div class="section-title">Impliqués (Vert)</div>
+                    <div class="count-value" id="count-green">0</div>
+                    <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('green', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('green', 1)">+</button></div>
+                </div>
+                <div class="category-card" style="border-top: 4px solid var(--black);">
+                    <div class="section-title">Décédés (Noir)</div>
+                    <div class="count-value" id="count-black">0</div>
+                    <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('black', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('black', 1)">+</button></div>
+                </div>
             </div>
-            <div class="category-card" style="border-top: 4px solid var(--green);">
-                <div class="section-title">IMPLIQUÉS (Vert)</div>
-                <div class="count-value" id="count-green">0</div>
-                <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('green', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('green', 1)">+</button></div>
-            </div>
-            <div class="category-card" style="border-top: 4px solid var(--black);">
-                <div class="section-title">DÉCÉDÉS (Noir)</div>
-                <div class="count-value" id="count-black">0</div>
-                <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('black', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('black', 1)">+</button></div>
+
+            <div class="section-box" style="margin-top:10px;">
+                <div class="section-title">Détail Pédiatrique</div>
+                <div id="ped-area">
+                    <div class="ped-row"><span>0-2 ans</span><div class="ped-controls"><button class="btn-ped action-btn" onclick="changePed('p02', -1)">-</button><span id="count-p02">0</span><button class="btn-ped action-btn" onclick="changePed('p02', 1)">+</button></div></div>
+                    <div class="ped-row"><span>3-10 ans</span><div class="ped-controls"><button class="btn-ped action-btn" onclick="changePed('p310', -1)">-</button><span id="count-p310">0</span><button class="btn-ped action-btn" onclick="changePed('p310', 1)">+</button></div></div>
+                    <div class="ped-row"><span>10-15 ans</span><div class="ped-controls"><button class="btn-ped action-btn" onclick="changePed('p1015', -1)">-</button><span id="count-p1015">0</span><button class="btn-ped action-btn" onclick="changePed('p1015', 1)">+</button></div></div>
+                </div>
             </div>
         </section>
 
-        <aside class="panel">
+        <aside>
             <div class="section-box">
-                <div class="section-title">Synthèse Globale</div>
-                <div id="synthContent"></div>
-                <div class="total-global" id="totalGlobal">Total : 0</div>
+                <div class="section-title">Je Prévois / Logistique</div>
+                <input type="text" id="locPRM" placeholder="Localisation Point de Regroupement (PRM)" class="action-btn">
+                <select id="evolStatus" class="action-btn"><option value="NON ÉVOLUTIVE">Situation NON ÉVOLUTIVE</option><option value="ÉVOLUTIVE">Situation ÉVOLUTIVE</option></select>
             </div>
+
             <div class="section-box">
-                <div class="section-title">Paramètres Bilan Radio</div>
-                <input type="text" id="vlmId" value="VLM 1" placeholder="Indicatif">
-                <select id="secureStatus"><option value="est sécurisée">Zone sécurisée</option><option value="n’est pas sécurisée">Zone NON sécurisée</option></select>
-                <select id="evolStatus"><option value="non évolutive">Situation non évolutive</option><option value="évolutive">Situation évolutive</option></select>
-                <select id="contextType"><option value="aucun">Aucun contexte</option><option value="attentat">Attentat</option><option value="toxique">Toxique</option><option value="NRBC">NRBC</option></select>
-                
-                <button class="btn-primary" onclick="generateBilan()">GÉNÉRER BILAN COMPLET</button>
-                <textarea id="radioText" rows="12" readonly style="font-size: 0.75rem; margin-top:10px;" placeholder="Le texte apparaîtra ici..."></textarea>
+                <div class="section-title">Identification & Renforts</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 0px;">
+                    <select id="typo1" class="action-btn"><option value="">-- Typologie 1 --</option></select>
+                    <select id="typo2" class="action-btn"><option value="">-- Typologie 2 --</option></select>
+                </div>
+                <input type="text" id="vlmId" value="VLM 1" placeholder="Mon Indicatif" class="action-btn">
+                <textarea id="besoinRenforts" rows="1" placeholder="Besoin en renforts..." class="action-btn" style="min-height: 40px;"></textarea>
+                <select id="secureStatus" class="action-btn"><option value="SÉCURISÉE">Zone SÉCURISÉE</option><option value="NON SÉCURISÉE">Zone NON SÉCURISÉE</option></select>
+                <button class="btn-primary" onclick="generateBilan()">GÉNÉRER SEQUENCE RADIO</button>
             </div>
+            
+            <textarea id="radioText" rows="14" readonly style="font-size: 0.72rem; font-family: monospace; line-height: 1.4; color: #38bdf8;"></textarea>
         </aside>
     </main>
 </div>
@@ -173,123 +167,120 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
 
-    const firebaseConfig = {
-        apiKey: "TRIAGE_PC",
-        databaseURL: "https://triage-cata-pc-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "TRIAGE_PC",
-    };
-
+    const firebaseConfig = { apiKey: "TRIAGE_PC", databaseURL: "https://triage-cata-pc-default-rtdb.europe-west1.firebasedatabase.app", projectId: "TRIAGE_PC" };
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const triageRef = ref(db, 'triage_live');
 
     let isLocked = true;
-    let state = {
-        mode: "EXERCICE",
-        currentZone: "PRV 1",
-        zones: { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "" } }
+    let state = { mode: "EXERCICE", currentZone: "PRV 1", zones: { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", p02:0, p310:0, p1015:0 } } };
+
+    const typs = ["Plaies par balles", "Plaies par arme blanche", "AVP – traumatologie", "Accident train", "Accident avion", "Incendie / explosion", "Intoxications", "Risque NRBC", "Catastrophe naturelle", "Autre"];
+    const tSel1 = document.getElementById('typo1'); 
+    const tSel2 = document.getElementById('typo2');
+    typs.forEach(t => { 
+        tSel1.add(new Option(t, t)); 
+        tSel2.add(new Option(t, t)); 
+    });
+
+    setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleString('fr-FR'); }, 1000);
+
+    window.checkPass = () => { if(document.getElementById('passInput').value === "SAMU30") { document.getElementById('loginScreen').style.display = 'none'; document.getElementById('appMain').style.display = 'block'; } };
+    
+    window.toggleLock = () => { 
+        isLocked = !isLocked; 
+        applyLockEffects();
     };
 
-    window.checkPass = () => {
-        if(document.getElementById('passInput').value === "SAMU30") {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('appMain').style.display = 'block';
-        } else { document.getElementById('loginError').style.display = 'block'; }
-    };
-
-    window.toggleLock = () => { isLocked = !isLocked; render(); };
-
-    function applyLock() {
+    function applyLockEffects() {
         document.querySelectorAll('.action-btn').forEach(b => b.disabled = isLocked);
         document.getElementById('lockIcon').innerText = isLocked ? "🔒" : "🔓";
         document.getElementById('lockBtn').className = isLocked ? "lock-btn locked" : "lock-btn";
+        
+        // Griser/Dégriser les chiffres
+        const counts = document.querySelectorAll('.count-value');
+        const peds = document.querySelectorAll('.ped-row');
+        
+        if (isLocked) {
+            counts.forEach(c => c.classList.add('locked-data'));
+            peds.forEach(p => p.classList.add('locked-data'));
+        } else {
+            counts.forEach(c => c.classList.remove('locked-data'));
+            peds.forEach(p => p.classList.remove('locked-data'));
+        }
     }
 
-    window.updateMode = (val) => { state.mode = val; save(); };
-    window.updateMed = (val) => { state.zones[state.currentZone].med = val; save(); };
-    window.changeVal = (cat, n) => {
-        if (isLocked) return;
-        state.zones[state.currentZone][cat] = Math.max(0, state.zones[state.currentZone][cat] + n);
-        save();
-    };
-    window.switchZone = (name) => { state.currentZone = name; render(); save(); };
-    
-    window.addZone = (type) => {
+    window.updateMode = (v) => { state.mode = v; save(); };
+    window.updateMed = (v) => { state.zones[state.currentZone].med = v; save(); };
+    window.updateSiteLoc = (v) => { state.zones[state.currentZone].loc = v; save(); };
+    window.changeVal = (c, n) => { if (!isLocked) { state.zones[state.currentZone][c] = Math.max(0, state.zones[state.currentZone][c] + n); save(); } };
+    window.changePed = (c, n) => { if (!isLocked) { state.zones[state.currentZone][c] = Math.max(0, (state.zones[state.currentZone][c]||0) + n); save(); } };
+    window.switchZone = (n) => { state.currentZone = n; render(); save(); };
+
+    window.addZone = (prefix) => {
         if(isLocked) return;
-        let newName = type === 'PRV' ? "PRV " + (Object.keys(state.zones).filter(k => k.startsWith('PRV')).length + 1) : type;
-        if (state.zones[newName]) return;
-        state.zones[newName] = { red: 0, yellow: 0, green: 0, black: 0, med: "" };
-        state.currentZone = newName;
-        save();
+        let n = prefix + " " + (Object.keys(state.zones).filter(k => k.startsWith(prefix)).length + 1);
+        if (!state.zones[n]) { state.zones[n] = { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", p02:0, p310:0, p1015:0 }; state.currentZone = n; save(); }
     };
 
-    window.renameCurrentZone = () => {
-        if(isLocked) return;
-        const oldName = state.currentZone;
-        const newName = prompt("Nouveau nom :", oldName);
-        if (newName && newName !== oldName) {
-            state.zones[newName] = state.zones[oldName];
-            delete state.zones[oldName];
-            state.currentZone = newName;
-            save();
-        }
-    };
-
-    window.resetAllData = () => {
-        if(isLocked) return;
-        if(confirm("⚠ VOULEZ-VOUS TOUT EFFACER ?")) {
-            state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "" } };
-            state.currentZone = "PRV 1";
-            save();
-        }
-    };
+    window.renameCurrentZone = () => { if(!isLocked) { const old = state.currentZone; const n = prompt("Nom :", old); if (n && n !== old) { state.zones[n] = state.zones[old]; delete state.zones[old]; state.currentZone = n; save(); } } };
+    window.resetAllData = () => { if(!isLocked && confirm("Réinitialiser ?")) { state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", p02:0, p310:0, p1015:0 } }; state.currentZone = "PRV 1"; save(); } };
 
     function save() { set(triageRef, state); }
-    onValue(triageRef, (snapshot) => { const data = snapshot.val(); if(data) { state = data; render(); } });
+    onValue(triageRef, (s) => { const d = s.val(); if(d) { state = d; render(); } });
 
     function render() {
-        const isReel = state.mode === "RÉEL";
-        document.getElementById('radioReel').checked = isReel;
-        document.getElementById('radioExo').checked = !isReel;
-        const el = document.getElementById('modeStatus');
-        el.innerText = state.mode;
-        el.className = "mode-status " + (isReel ? "status-reel" : "status-exercice");
-
+        document.getElementById('modeStatus').innerText = state.mode;
         const tabList = document.getElementById('tabList');
-        let html = Object.keys(state.zones).map(z => `<button class="tab ${z === state.currentZone ? 'active' : ''}" onclick="switchZone('${z}')">${z}</button>`).join('');
-        html += `<button class="tab tab-special action-btn" onclick="addZone('PRV')">+ PRV</button>`;
-        if (!state.zones['PMA']) html += `<button class="tab tab-special action-btn" onclick="addZone('PMA')">+ PMA</button>`;
-        if (!state.zones['EVAC']) html += `<button class="tab tab-special action-btn" onclick="addZone('EVAC')">+ EVAC</button>`;
-        tabList.innerHTML = html;
-
+        let h = Object.keys(state.zones).map(z => `<button class="tab ${z === state.currentZone ? 'active' : ''}" onclick="switchZone('${z}')">${z}</button>`).join('');
+        h += `<button class="tab btn-add action-btn" onclick="addZone('PRV')">+ PRV</button>`;
+        h += `<button class="tab btn-add action-btn" onclick="addZone('PMA')">+ PMA</button>`;
+        tabList.innerHTML = h;
         document.getElementById('activeTitle').innerText = state.currentZone;
-        const cz = state.zones[state.currentZone] || {red:0, yellow:0, green:0, black:0, med:""};
-        document.getElementById('count-red').innerText = cz.red;
-        document.getElementById('count-yellow').innerText = cz.yellow;
-        document.getElementById('count-green').innerText = cz.green;
-        document.getElementById('count-black').innerText = cz.black;
+        const cz = state.zones[state.currentZone] || {};
+        ['red','yellow','green','black','p02','p310','p1015'].forEach(c => { const el = document.getElementById('count-'+c); if(el) el.innerText = cz[c] || 0; });
         document.getElementById('medName').value = cz.med || "";
-
-        let globalTotal = 0;
-        let synthHtml = "";
-        Object.keys(state.zones).forEach(z => {
-            const d = state.zones[z];
-            const sum = d.red + d.yellow + d.green + d.black;
-            globalTotal += sum;
-            synthHtml += `<div class="synth-row" onclick="switchZone('${z}')"><span><b>${z}</b> (${d.med || '?'})</span><strong>${sum}</strong></div>`;
-        });
-        document.getElementById('synthContent').innerHTML = synthHtml;
-        document.getElementById('totalGlobal').innerText = `Total : ${globalTotal}`;
-        applyLock();
+        document.getElementById('siteLoc').value = cz.loc || "";
+        applyLockEffects();
     }
 
     window.generateBilan = () => {
         const z = state.zones[state.currentZone];
-        const total = z.red + z.yellow + z.green + z.black;
         const indicatif = document.getElementById('vlmId').value || "VLM 1";
         const prefix = state.mode === "EXERCICE" ? "*** EXERCICE ***\n" : "*** RÉEL ***\n";
+        const total = z.red + z.yellow + z.green + z.black;
+        const totalPed = (z.p02||0) + (z.p310||0) + (z.p1015||0);
         
-        const text = `${prefix}Centre 15, Centre 15,\nDe : ${indicatif}\nSecteur : ${state.currentZone}\nResponsable : ${z.med || 'Non renseigné'}\n\nJe confirme le lieu et la nature.\nL’intervention ${document.getElementById('secureStatus').value}.\nJe considère la situation ${document.getElementById('evolStatus').value}.\nContexte : ${document.getElementById('contextType').value}.\n\nTotal victimes : ${total}\n- UA (rouge) : ${z.red}\n- UR (jaune) : ${z.yellow}\n- Impliqués (verts) : ${z.green}\n- Dépassés (noir) : ${z.black}\n\n${prefix}*** TERMINÉ ***`;
+        let typologies = document.getElementById('typo1').value;
+        if(document.getElementById('typo2').value) typologies += " + " + document.getElementById('typo2').value;
+
+        let text = `${prefix}`;
+        text += `HORODATAGE : ${new Date().toLocaleString('fr-FR')}\n`;
+        text += `CENTRE 15, DE : ${indicatif}\n\n`;
+        
+        text += `1. JE SUIS (Identification) :\n`;
+        text += `- Secteur : ${state.currentZone} (${z.loc || 'Localisation site non précisée'})\n`;
+        text += `- Responsable : ${z.med || 'À désigner'}\n`;
+        text += `- Sinistre Global : ${document.getElementById('locSinistre').value || 'Non précisée'}\n\n`;
+
+        text += `2. JE VOIS (Situation) :\n`;
+        text += `- Nature/Typologie : ${typologies || 'À préciser'}\n`;
+        text += `- Sécurité : Zone ${document.getElementById('secureStatus').value}\n`;
+        text += `- Bilan Global : ${total} Victimes (UA:${z.red} / UR:${z.yellow} / V:${z.green} / N:${z.black})\n`;
+        if(totalPed > 0) text += `- Dont Pédiatrie : ${totalPed} (0-2a:${z.p02||0}, 3-10a:${z.p310||0}, 10-15a:${z.p1015||0})\n`;
+        text += `\n`;
+
+        text += `3. JE PRÉVOIS (Évolution & Logistique) :\n`;
+        text += `- Point de regroupement (PRM) : ${document.getElementById('locPRM').value || 'Non défini'}\n`;
+        text += `- Évolution : Situation ${document.getElementById('evolStatus').value}\n\n`;
+
+        text += `4. JE FAIS (Actions) :\n`;
+        text += `- Actions : Triage et stabilisation en cours sur ${state.currentZone}\n\n`;
+
+        text += `5. JE DEMANDE (Renforts) :\n`;
+        text += `- Besoin : ${document.getElementById('besoinRenforts').value || 'RAS pour le moment'}\n\n`;
+
+        text += `${prefix}*** TERMINÉ ***`;
         document.getElementById('radioText').value = text;
     };
 </script>
