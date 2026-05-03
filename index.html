@@ -15,7 +15,7 @@
             --black: #111827; --accent: #38bdf8;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; touch-action: manipulation; }
-        body { background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%); color: var(--text); min-height: 100vh; display: flex; justify-content: center; padding: 10px; overflow-x: hidden; }
+        body { background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 10px; overflow-x: hidden; }
         
         #loginScreen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
         .login-box { background: var(--card-bg); padding: 30px; border-radius: 20px; border: 1px solid var(--border); text-align: center; width: 100%; max-width: 400px; }
@@ -56,8 +56,10 @@
         .btn-ped { background: #1e293b; border: 1px solid var(--border); color: white; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
         
         .flex-row { display: flex; gap: 4px; align-items: center; }
-        .map-link-btn { background: #0ea5e9 !important; color: white !important; font-size: 0.7rem !important; opacity: 0.5; pointer-events: none; }
+        .map-link-btn { background: #0ea5e9 !important; color: white !important; font-size: 0.7rem !important; opacity: 0.3; pointer-events: none; }
         .map-link-btn.active { opacity: 1; pointer-events: auto; }
+
+        footer { text-align: center; padding: 20px 0; color: var(--muted); font-size: 0.7rem; letter-spacing: 1px; width: 100%; }
     </style>
 </head>
 <body>
@@ -175,13 +177,25 @@
     </main>
 </div>
 
+<footer>
+    &copy; 2026 Applicata - Tous droits réservés
+</footer>
+
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+    import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    const firebaseConfig = { apiKey: "TRIAGE_PC", databaseURL: "https://triage-cata-pc-default-rtdb.europe-west1.firebasedatabase.app", projectId: "TRIAGE_PC" };
+    // --- CONFIGURATION FIREBASE ---
+    const firebaseConfig = { 
+        apiKey: "AIzaSyCgZkgOClz8-iE21eCch2cggUXlqJ12fGc", 
+        databaseURL: "https://triage-cata-pc-default-rtdb.europe-west1.firebasedatabase.app", 
+        projectId: "triage-cata-pc" 
+    };
+
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
+    const auth = getAuth(app);
     const triageRef = ref(db, 'triage_live');
 
     let isLocked = true;
@@ -194,6 +208,15 @@
         zones: { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", gpsUrl: "", p02:0, p310:0, p1015:0 } } 
     };
 
+    // --- INITIALISATION SECURISEE ---
+    signInAnonymously(auth).then(() => {
+        onValue(triageRef, (s) => { 
+            const d = s.val(); 
+            if(d) { state = d; render(); } 
+            else { save(); } // Initialise la DB si vide
+        });
+    }).catch(err => console.error("Auth Fail:", err));
+
     const typs = ["Plaies par balles", "Plaies par arme blanche", "AVP – traumatologie", "Accident train", "Accident avion", "Incendie / explosion", "Intoxications", "Risque NRBC", "Catastrophe naturelle", "Autre"];
     const tSel1 = document.getElementById('typo1'); 
     const tSel2 = document.getElementById('typo2');
@@ -201,19 +224,18 @@
 
     setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleString('fr-FR'); }, 1000);
 
+    // --- FONCTIONS SYSTEME ---
     window.checkPass = () => { if(document.getElementById('passInput').value === "SAMU30") { document.getElementById('loginScreen').style.display = 'none'; document.getElementById('appMain').style.display = 'block'; } };
-    
     window.toggleLock = () => { isLocked = !isLocked; applyLockEffects(); };
-
     function applyLockEffects() {
-        document.querySelectorAll('.action-btn, .local-saisie').forEach(b => b.disabled = isLocked);
+        document.querySelectorAll('.action-btn').forEach(b => b.disabled = isLocked);
         document.getElementById('lockIcon').innerText = isLocked ? "🔒" : "🔓";
         document.getElementById('lockBtn').className = isLocked ? "lock-btn locked" : "lock-btn";
         const counts = document.querySelectorAll('.count-value, .ped-row');
         counts.forEach(c => isLocked ? c.classList.add('locked-data') : c.classList.remove('locked-data'));
     }
 
-    // Ouvre l'URL stockée dans le bouton
+    // --- GESTION CARTES ET GPS ---
     window.openStoredMap = (btn) => {
         const url = btn.getAttribute('data-url');
         if (url) window.open(url, '_blank');
@@ -221,7 +243,6 @@
 
     function cleanAddressOnly(addr) {
         if(!addr) return "";
-        addr = addr.replace(/[A-Z]{2}\*[A-Z0-9\*]+\*/g, '');
         const toRemove = ["France métropolitaine", "France", "Occitanie", "Gard"];
         let parts = addr.split(',').map(p => p.trim());
         let filtered = parts.filter(p => !/^\d{5}$/.test(p) && !toRemove.some(rem => p.toLowerCase() === rem.toLowerCase()) && p.length > 0);
@@ -239,9 +260,7 @@
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
                 const data = await res.json();
                 let cleanAddr = cleanAddressOnly(data.display_name) || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-
                 document.getElementById(fieldId).value = cleanAddr;
-                
                 if(fieldId === 'siteLoc') {
                     state.zones[localCurrentZone].loc = cleanAddr;
                     state.zones[localCurrentZone].gpsUrl = gpsUrl;
@@ -251,59 +270,37 @@
                 }
                 save();
                 btn.innerText = "✅"; setTimeout(() => { btn.innerText = "📍"; }, 2000);
-            } catch (e) {
-                const fallback = `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-                document.getElementById(fieldId).value = fallback;
-                btn.innerText = "📍";
-            }
+            } catch (e) { btn.innerText = "📍"; }
         }, () => btn.innerText = "📍", { enableHighAccuracy: true });
     };
 
+    // --- ACTIONS DONNEES ---
+    window.save = () => set(triageRef, state);
     window.updateMode = (v) => { state.mode = v; save(); };
     window.updateGlobalLoc = (v) => { state.globalLoc = v; save(); };
     window.updateMed = (v) => { state.zones[localCurrentZone].med = v; save(); };
     window.updateSiteLoc = (v) => { state.zones[localCurrentZone].loc = v; save(); };
-    window.changeVal = (c, n) => { if (!isLocked) { state.zones[localCurrentZone][c] = Math.max(0, state.zones[localCurrentZone][c] + n); save(); } };
+    window.changeVal = (c, n) => { if (!isLocked) { state.zones[localCurrentZone][c] = Math.max(0, (state.zones[localCurrentZone][c]||0) + n); save(); } };
     window.changePed = (c, n) => { if (!isLocked) { state.zones[localCurrentZone][c] = Math.max(0, (state.zones[localCurrentZone][c]||0) + n); save(); } };
-    
     window.switchZone = (n) => { localCurrentZone = n; render(); };
-
     window.addZone = (prefix) => {
         if(isLocked) return;
         let n = prefix + " " + (Object.keys(state.zones).filter(k => k.startsWith(prefix)).length + 1);
         state.zones[n] = { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", gpsUrl: "", p02:0, p310:0, p1015:0 }; 
-        localCurrentZone = n; 
-        save();
+        localCurrentZone = n; save();
     };
-
     window.renameCurrentZone = () => { if(!isLocked) { const old = localCurrentZone; const n = prompt("Nom :", old); if (n && n !== old) { state.zones[n] = state.zones[old]; delete state.zones[old]; localCurrentZone = n; save(); } } };
-    
-    window.resetAllData = () => { 
-        if(!isLocked && confirm("Réinitialiser toutes les données ?")) { 
-            state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", gpsUrl: "", p02:0, p310:0, p1015:0 } }; 
-            localCurrentZone = "PRV 1"; 
-            state.globalLoc = "";
-            state.globalGPSUrl = "";
-            document.getElementById('radioText').value = "";
-            save(); 
-        } 
-    };
+    window.resetAllData = () => { if(!isLocked && confirm("Tout effacer ?")) { state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", gpsUrl: "", p02:0, p310:0, p1015:0 } }; localCurrentZone = "PRV 1"; state.globalLoc = ""; state.globalGPSUrl = ""; save(); } };
 
-    function save() { set(triageRef, state); }
-    onValue(triageRef, (s) => { const d = s.val(); if(d) { state = d; render(); } });
-
+    // --- RENDU UI ---
     function render() {
         document.getElementById('modeStatus').innerText = state.mode;
+        document.getElementById('radioExo').checked = state.mode === "EXERCICE";
+        document.getElementById('radioReel').checked = state.mode === "RÉEL";
         document.getElementById('locSinistre').value = state.globalLoc || "";
-        
-        // Mise à jour bouton Map Global
         const btnGlobal = document.getElementById('openGlobalMap');
-        if(state.globalGPSUrl) {
-            btnGlobal.setAttribute('data-url', state.globalGPSUrl);
-            btnGlobal.classList.add('active');
-        } else {
-            btnGlobal.classList.remove('active');
-        }
+        if(state.globalGPSUrl) { btnGlobal.setAttribute('data-url', state.globalGPSUrl); btnGlobal.classList.add('active'); } 
+        else { btnGlobal.classList.remove('active'); }
 
         const tabList = document.getElementById('tabList');
         let h = Object.keys(state.zones).map(z => `<button class="tab ${z === localCurrentZone ? 'active' : ''}" onclick="switchZone('${z}')">${z}</button>`).join('');
@@ -312,36 +309,29 @@
         
         if(!state.zones[localCurrentZone]) localCurrentZone = Object.keys(state.zones)[0];
         document.getElementById('activeTitle').innerText = localCurrentZone;
-        
         const cz = state.zones[localCurrentZone];
         ['red','yellow','green','black','p02','p310','p1015'].forEach(c => { document.getElementById('count-'+c).innerText = cz[c] || 0; });
         document.getElementById('medName').value = cz.med || "";
         document.getElementById('siteLoc').value = cz.loc || "";
-
-        // Mise à jour bouton Map Site
         const btnSite = document.getElementById('openSiteMap');
-        if(cz.gpsUrl) {
-            btnSite.setAttribute('data-url', cz.gpsUrl);
-            btnSite.classList.add('active');
-        } else {
-            btnSite.classList.remove('active');
-        }
-
+        if(cz.gpsUrl) { btnSite.setAttribute('data-url', cz.gpsUrl); btnSite.classList.add('active'); } 
+        else { btnSite.classList.remove('active'); }
         applyLockEffects();
     }
 
+    // --- SEQUENCE RADIO ---
     window.generateBilan = () => {
         const z = state.zones[localCurrentZone];
         const indicatif = document.getElementById('vlmId').value || "SMUR 1";
         const prefix = state.mode === "EXERCICE" ? "*** EXERCICE ***\n" : "*** RÉEL ***\n";
-        const total = z.red + z.yellow + z.green + z.black;
+        const total = (z.red||0) + (z.yellow||0) + (z.green||0) + (z.black||0);
         const totalPed = (z.p02||0) + (z.p310||0) + (z.p1015||0);
         let typologies = document.getElementById('typo1').value;
         if(document.getElementById('typo2').value) typologies += " + " + document.getElementById('typo2').value;
 
         let text = `${prefix}HORODATAGE : ${new Date().toLocaleString('fr-FR')}\nSAMU 30, DE : ${indicatif}\n\n`;
         text += `1. JE SUIS :\n- Secteur : ${localCurrentZone}\n- Pos : ${z.loc || 'N/C'}\n- Resp : ${z.med || 'À désigner'}\n- Sinistre : ${state.globalLoc || 'N/C'}\n\n`;
-        text += `2. JE VOIS :\n- Nature : ${typologies || 'À préciser'}\n- Sécurité : ${document.getElementById('secureStatus').value}\n- Bilan : ${total} Victimes (UA:${z.red}/UR:${z.yellow}/V:${z.green}/N:${z.black})\n`;
+        text += `2. JE VOIS :\n- Nature : ${typologies || 'À préciser'}\n- Sécurité : ${document.getElementById('secureStatus').value}\n- Bilan : ${total} Victimes (UA:${z.red||0}/UR:${z.yellow||0}/V:${z.green||0}/N:${z.black||0})\n`;
         if(totalPed > 0) text += `- Dont Péd : ${totalPed} (0-2a:${z.p02||0}, 3-10a:${z.p310||0}, 10-15a:${z.p1015||0})\n`;
         text += `\n3. JE PRÉVOIS :\n- PRM : ${document.getElementById('locPRM').value || 'Non défini'}\n- Évolution : ${document.getElementById('evolStatus').value}\n\n`;
         text += `4. JE FAIS : Triage et stabilisation sur ${localCurrentZone}\n\n`;
