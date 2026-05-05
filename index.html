@@ -2,20 +2,17 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-<!-- Icône pour l'écran d'accueil iPhone (Apple Touch Icon) -->
-<link rel="apple-touch-icon" sizes="180x180" href="https://raw.githubusercontent.com/appli-cata/AppliCata/main/favicon.png">
-
-<!-- Icône pour l'onglet du navigateur (Favicon) -->
-<link rel="icon" type="image/png" href="https://raw.githubusercontent.com/appli-cata/AppliCata/main/favicon.png">
-
-<!-- Configuration Mode App Plein Écran -->
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="AppliCata">
-    <title>Triage Opérationnel - PC CATA</title>
+    <title>AppliCata - PC CATA</title>
+    
+    <!-- CONFIGURATION PLEIN ÉCRAN IPHONE -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
-    <meta name="theme-color" content="#020617">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2280%22>⚕️</text></svg>">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="AppliCata">
+    
+    <!-- Icône pour l'écran d'accueil -->
+    <link rel="apple-touch-icon" sizes="180x180" href="https://raw.githubusercontent.com/appli-cata/AppliCata/main/favicon.png">
+    <link rel="icon" type="image/png" href="https://raw.githubusercontent.com/appli-cata/AppliCata/main/favicon.png">
 
     <style>
         :root {
@@ -23,66 +20,97 @@
             --text: #e5e7eb; --muted: #9ca3af; --border: #1f2937;
             --red: #ef4444; --yellow: #f59e0b; --green: #22c55e;
             --black: #111827; --accent: #38bdf8;
+            --neutral-btn: #1e293b;
         }
+
+        /* Reset et gestion de l'encoche iPhone (Safe Area) */
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, sans-serif; touch-action: manipulation; }
-        body { background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 10px; overflow-x: hidden; }
         
+        body { 
+            background: radial-gradient(circle at top, #1f2937 0, #020617 55%, #000 100%); 
+            color: var(--text); 
+            min-height: 100vh; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            /* Empêche le contenu de toucher l'heure/encoche */
+            padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+            overflow-x: hidden; 
+        }
+
         #loginScreen { position: fixed; inset: 0; background: var(--bg); z-index: 9999; display: flex; align-items: center; justify-content: center; }
-        .login-box { background: var(--card-bg); padding: 30px; border-radius: 20px; border: 1px solid var(--border); text-align: center; width: 100%; max-width: 400px; }
+        .login-box { background: var(--card-bg); padding: 30px; border-radius: 20px; border: 1px solid var(--border); text-align: center; width: 90%; max-width: 400px; }
 
-        .app { max-width: 1250px; width: 100%; background: rgba(15, 23, 42, 0.98); border-radius: 18px; padding: 14px; box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65); border: 1px solid rgba(55, 65, 81, 0.8); backdrop-filter: blur(12px); display: none; }
+        .app { max-width: 1250px; width: 100%; background: rgba(15, 23, 42, 0.98); border-radius: 18px; padding: 10px; box-shadow: 0 18px 60px rgba(0, 0, 0, 0.65); border: 1px solid rgba(55, 65, 81, 0.8); backdrop-filter: blur(12px); display: none; }
         
-        .header-top { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px; }
-        .datetime-display { font-family: monospace; font-size: 0.8rem; color: var(--accent); background: #1e293b; padding: 5px 10px; border-radius: 6px; }
+        .global-summary {
+            background: linear-gradient(90deg, #1e293b, #020617); border: 1px solid var(--accent); border-radius: 12px;
+            padding: 8px; margin-bottom: 10px; display: flex; justify-content: space-around; text-align: center;
+        }
+        .summary-item { flex: 1; border-right: 1px solid var(--border); }
+        .summary-item:last-child { border-right: none; }
+        .summary-label { font-size: 0.55rem; color: var(--accent); text-transform: uppercase; font-weight: bold; }
+        .summary-total { font-size: 1.1rem; font-weight: 800; color: white; }
+
+        .header-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .datetime-display { font-family: monospace; font-size: 0.75rem; color: var(--accent); background: #1e293b; padding: 4px 8px; border-radius: 6px; }
         
-        .mode-bar { flex-grow: 1; display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 10px 15px; border-radius: 12px; border: 1px solid var(--border); }
-        .lock-btn { background: #1e293b; border: 1px solid var(--border); padding: 10px 15px; border-radius: 12px; cursor: pointer; font-size: 1.2rem; transition: all 0.2s; }
+        .mode-bar { flex-grow: 1; display: flex; justify-content: space-between; align-items: center; background: #1e293b; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--border); font-size: 0.8rem; }
+        .lock-btn { background: #1e293b; border: 1px solid var(--border); padding: 8px 12px; border-radius: 12px; cursor: pointer; font-size: 1.1rem; }
         .lock-btn.locked { border-color: var(--yellow); background: rgba(245, 158, 11, 0.1); }
+        .locked-data { opacity: 0.35 !important; filter: grayscale(1); }
 
-        .locked-data { opacity: 0.35 !important; filter: grayscale(1); transition: all 0.3s ease; }
-
-        .tabs-container { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 5px; border-bottom: 1px solid var(--border); }
-        .tab { padding: 8px 16px; border-radius: 999px; border: 1px solid #374151; background: #020617; color: white; cursor: pointer; white-space: nowrap; font-size: 0.85rem; }
+        .tabs-container { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 5px; border-bottom: 1px solid var(--border); }
+        .tab { padding: 6px 12px; border-radius: 999px; border: 1px solid #374151; background: #020617; color: white; cursor: pointer; white-space: nowrap; font-size: 0.75rem; }
         .tab.active { background: linear-gradient(135deg, #22c55e, #0ea5e9); color: #020617; font-weight: bold; }
-        .btn-add { background: #1e293b; border: 1px dashed var(--accent); color: var(--accent); }
 
-        main { display: grid; grid-template-columns: 1fr 420px; gap: 15px; }
+        main { display: grid; grid-template-columns: 1fr 380px; gap: 12px; }
         @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
 
-        .triage-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-        .category-card { background: #020617; border: 1px solid var(--border); padding: 12px; border-radius: 16px; }
-        .count-value { font-size: 2.2rem; font-weight: 800; text-align: center; margin: 5px 0; transition: opacity 0.3s; }
-        .card-btns { display: flex; gap: 8px; }
-        .btn-counter { flex: 1; padding: 10px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer; background: #1e293b; color: white; font-size: 1.2rem; }
+        .category-card { background: #020617; border: 1px solid var(--border); padding: 10px; border-radius: 16px; }
+        .count-value { font-size: 1.8rem; font-weight: 800; text-align: center; margin: 4px 0; }
+        
+        .section-box { background: #020617; border: 1px solid var(--border); padding: 10px; border-radius: 16px; margin-bottom: 10px; }
+        .section-title { color: var(--accent); font-size: 0.65rem; font-weight: bold; margin-bottom: 6px; text-transform: uppercase; }
+        
+        input, select, textarea { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 7px; border-radius: 6px; margin-bottom: 5px; font-size: 0.8rem; }
+        .btn-primary { background: linear-gradient(135deg, #0ea5e9, #22c55e); color: #020617; font-weight: bold; padding: 10px; border: none; border-radius: 8px; width: 100%; cursor: pointer; margin-top: 5px; }
+        
+        .btn-counter { background: var(--neutral-btn); color: white; border: 1px solid #334155; font-size: 1.2rem; font-weight: bold; padding: 8px; border-radius: 8px; width: 100%; cursor: pointer; }
 
-        .section-box { background: #020617; border: 1px solid var(--border); padding: 12px; border-radius: 16px; margin-bottom: 10px; }
-        .section-title { color: var(--accent); font-size: 0.7rem; font-weight: bold; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
-        
-        input, select, textarea { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 8px; border-radius: 6px; margin-bottom: 6px; font-size: 0.8rem; }
-        .btn-primary { background: linear-gradient(135deg, #0ea5e9, #22c55e); color: #020617; font-weight: bold; padding: 12px; border: none; border-radius: 8px; width: 100%; cursor: pointer; margin-top: 5px; }
-        .btn-reset { background: transparent; color: var(--red); border: 1px solid var(--red); padding: 5px 10px; border-radius: 6px; cursor: pointer; font-size: 0.7rem; }
-        
-        .ped-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; font-size: 0.75rem; color: var(--muted); transition: opacity 0.3s; }
-        .btn-ped { background: #1e293b; border: 1px solid var(--border); color: white; width: 34px; height: 34px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; }
-        
+        .besoin-row { display: flex; gap: 4px; margin-bottom: 6px; }
+        .btn-plus { background: #1e293b; border: 1px dashed var(--accent); color: var(--accent); padding: 6px; border-radius: 6px; cursor: pointer; width: 100%; font-size: 0.7rem; font-weight: bold; }
+        .btn-remove { background: rgba(239, 68, 68, 0.1); border: 1px solid var(--red); color: var(--red); border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+
         .flex-row { display: flex; gap: 4px; align-items: center; }
-        .map-link-btn { background: #0ea5e9 !important; color: white !important; font-size: 0.7rem !important; opacity: 0.3; pointer-events: none; }
+        .map-link-btn { background: #0ea5e9 !important; color: white !important; opacity: 0.3; pointer-events: none; height: 32px; width: 32px; border-radius: 6px; border: none; display: flex; align-items: center; justify-content: center;}
         .map-link-btn.active { opacity: 1; pointer-events: auto; }
 
-        footer { text-align: center; padding: 20px 0; color: var(--muted); font-size: 0.7rem; letter-spacing: 1px; width: 100%; }
+        footer { text-align: center; padding: 15px 0; color: var(--muted); font-size: 0.65rem; width: 100%; }
     </style>
 </head>
 <body>
 
+<!-- ... (Le reste du HTML reste identique aux versions précédentes) ... -->
+
 <div id="loginScreen">
     <div class="login-box">
+        <img src="https://raw.githubusercontent.com/appli-cata/AppliCata/main/favicon.png" style="width: 70px; margin-bottom: 15px; border-radius: 12px;">
         <h2 style="margin-bottom: 20px; color: var(--accent);">Accès SAMU 30</h2>
-        <input type="password" id="passInput" placeholder="Mot de passe" style="text-align: center; font-size: 1.2rem;">
+        <input type="password" id="passInput" placeholder="Mot de passe" style="text-align: center; font-size: 1.1rem;">
         <button class="btn-primary" onclick="checkPass()">CONNEXION</button>
     </div>
 </div>
 
 <div class="app" id="appMain">
+    <!-- SYNTHESE -->
+    <div class="global-summary">
+        <div class="summary-item"><div class="summary-label">Total Victimes</div><div class="summary-total" id="global-total">0</div></div>
+        <div class="summary-item"><div class="summary-label">UA</div><div class="summary-total" id="global-ua" style="color:var(--red)">0</div></div>
+        <div class="summary-item"><div class="summary-label">UR</div><div class="summary-total" id="global-ur" style="color:var(--yellow)">0</div></div>
+        <div class="summary-item"><div class="summary-label">Impliqués</div><div class="summary-total" id="global-green" style="color:var(--green)">0</div></div>
+    </div>
+
     <div class="header-top">
         <div id="clock" class="datetime-display">--/--/---- --:--:--</div>
         <button id="lockBtn" class="lock-btn locked" onclick="toggleLock()"><span id="lockIcon">🔒</span></button>
@@ -91,29 +119,28 @@
     <div class="header-top">
         <div class="mode-bar">
             <div style="display:flex; gap:10px;">
-                <label><input type="radio" name="mode" value="EXERCICE" checked id="radioExo" onchange="updateMode('EXERCICE')"> EXO</label>
-                <label><input type="radio" name="mode" value="RÉEL" id="radioReel" onchange="updateMode('RÉEL')"> RÉEL</label>
+                <label><input type="radio" name="mode" value="EXERCICE" checked onchange="updateMode('EXERCICE')"> EXO</label>
+                <label><input type="radio" name="mode" value="RÉEL" onchange="updateMode('RÉEL')"> RÉEL</label>
             </div>
-            <div id="modeStatus" style="font-weight:bold; font-size:0.8rem;">EXERCICE</div>
+            <div id="modeStatus" style="font-weight:bold;">EXERCICE</div>
         </div>
     </div>
 
     <header>
         <div class="tabs-container" id="tabList"></div>
-        
-        <div style="background: rgba(56, 189, 248, 0.05); padding: 10px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 10px;">
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
-                <h1 id="activeTitle" style="color: white; font-size: 1.4rem;">PRV 1</h1>
-                <button class="btn-reset action-btn" onclick="renameCurrentZone()">✎</button>
+        <div class="section-box" style="background: rgba(56, 189, 248, 0.05);">
+            <div class="flex-row" style="margin-bottom: 8px;">
+                <h1 id="activeTitle" style="color: white; font-size: 1.1rem;">PRV 1</h1>
+                <button class="action-btn" onclick="renameCurrentZone()" style="background:none; border:none; color:var(--accent);">✎</button>
                 <div style="flex-grow: 1;"></div>
-                <button class="btn-reset action-btn" onclick="resetAllData()">RÀZ</button>
+                <button class="action-btn" onclick="resetAllData()" style="color:var(--red); background:none; border:none; font-size:0.65rem;">RÀZ</button>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <input type="text" id="medName" placeholder="MÉDECIN RESPONSABLE" oninput="updateMed(this.value)" class="action-btn" style="border-color: var(--accent);">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <input type="text" id="medName" placeholder="MÉDECIN" oninput="updateMed(this.value)" class="action-btn">
                 <div class="flex-row">
-                    <input type="text" id="siteLoc" placeholder="LOCALISATION SITE" oninput="updateSiteLoc(this.value)" class="action-btn" style="border-color: var(--accent); margin-bottom:0;">
-                    <button class="btn-ped action-btn" onclick="getGPSLocation('siteLoc')" title="GPS">📍</button>
-                    <button id="openSiteMap" class="btn-ped map-link-btn action-btn" onclick="openStoredMap(this)" title="Ouvrir Maps">🗺️</button>
+                    <input type="text" id="siteLoc" placeholder="LOCALISATION" oninput="updateSiteLoc(this.value)" class="action-btn">
+                    <button onclick="getGPSLocation('siteLoc')" style="background:#1e293b; border:1px solid var(--border); border-radius:6px; height:32px; width:32px; color:white;" class="action-btn">📍</button>
+                    <button id="openSiteMap" class="map-link-btn action-btn" onclick="openStoredMap(this)">🗺️</button>
                 </div>
             </div>
         </div>
@@ -122,81 +149,65 @@
     <main>
         <section>
             <div class="section-box">
-                <div class="section-title">Localisation du Sinistre Global</div>
+                <div class="section-title">Sinistre Global</div>
                 <div class="flex-row">
-                    <input type="text" id="locSinistre" placeholder="Adresse du sinistre" oninput="updateGlobalLoc(this.value)" class="action-btn" style="margin-bottom:0;">
-                    <button class="btn-ped action-btn" onclick="getGPSLocation('locSinistre')" title="Me localiser">📍</button>
-                    <button id="openGlobalMap" class="btn-ped map-link-btn action-btn" onclick="openStoredMap(this)" title="Ouvrir Maps">🗺️</button>
+                    <input type="text" id="locSinistre" placeholder="Adresse sinistre" oninput="updateGlobalLoc(this.value)" class="action-btn">
+                    <button onclick="getGPSLocation('locSinistre')" style="background:#1e293b; border:1px solid var(--border); border-radius:6px; height:32px; width:32px; color:white;" class="action-btn">📍</button>
+                    <button id="openGlobalMap" class="map-link-btn action-btn" onclick="openStoredMap(this)">🗺️</button>
                 </div>
             </div>
 
-            <div class="triage-grid">
-                <div class="category-card" style="border-top: 4px solid var(--red);">
-                    <div class="section-title">UA (Rouge)</div>
-                    <div class="count-value" id="count-red">0</div>
-                    <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('red', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('red', 1)">+</button></div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                <div class="category-card" style="border-top: 3px solid var(--red);">
+                    <div class="section-title">UA</div><div class="count-value" id="count-red">0</div>
+                    <div class="flex-row"><button class="btn-counter action-btn" onclick="changeVal('red', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('red', 1)">+</button></div>
                 </div>
-                <div class="category-card" style="border-top: 4px solid var(--yellow);">
-                    <div class="section-title">UR (Jaune)</div>
-                    <div class="count-value" id="count-yellow">0</div>
-                    <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('yellow', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('yellow', 1)">+</button></div>
+                <div class="category-card" style="border-top: 3px solid var(--yellow);">
+                    <div class="section-title">UR</div><div class="count-value" id="count-yellow">0</div>
+                    <div class="flex-row"><button class="btn-counter action-btn" onclick="changeVal('yellow', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('yellow', 1)">+</button></div>
                 </div>
-                <div class="category-card" style="border-top: 4px solid var(--green);">
-                    <div class="section-title">Impliqués (Vert)</div>
-                    <div class="count-value" id="count-green">0</div>
-                    <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('green', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('green', 1)">+</button></div>
+                <div class="category-card" style="border-top: 3px solid var(--green);">
+                    <div class="section-title">IMP</div><div class="count-value" id="count-green">0</div>
+                    <div class="flex-row"><button class="btn-counter action-btn" onclick="changeVal('green', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('green', 1)">+</button></div>
                 </div>
-                <div class="category-card" style="border-top: 4px solid var(--black);">
-                    <div class="section-title">Décédés (Noir)</div>
-                    <div class="count-value" id="count-black">0</div>
-                    <div class="card-btns"><button class="btn-counter action-btn" onclick="changeVal('black', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('black', 1)">+</button></div>
-                </div>
-            </div>
-
-            <div class="section-box" style="margin-top:10px;">
-                <div class="section-title">Détail Pédiatrique</div>
-                <div id="ped-area">
-                    <div class="ped-row"><span>0-2 ans</span><div class="ped-controls"><button class="btn-ped action-btn" onclick="changePed('p02', -1)" style="width:24px;height:24px;">-</button><span id="count-p02" style="margin:0 10px;">0</span><button class="btn-ped action-btn" onclick="changePed('p02', 1)" style="width:24px;height:24px;">+</button></div></div>
-                    <div class="ped-row"><span>3-10 ans</span><div class="ped-controls"><button class="btn-ped action-btn" onclick="changePed('p310', -1)" style="width:24px;height:24px;">-</button><span id="count-p310" style="margin:0 10px;">0</span><button class="btn-ped action-btn" onclick="changePed('p310', 1)" style="width:24px;height:24px;">+</button></div></div>
-                    <div class="ped-row"><span>10-15 ans</span><div class="ped-controls"><button class="btn-ped action-btn" onclick="changePed('p1015', -1)" style="width:24px;height:24px;">-</button><span id="count-p1015" style="margin:0 10px;">0</span><button class="btn-ped action-btn" onclick="changePed('p1015', 1)" style="width:24px;height:24px;">+</button></div></div>
+                <div class="category-card" style="border-top: 3px solid var(--black);">
+                    <div class="section-title">DCD</div><div class="count-value" id="count-black">0</div>
+                    <div class="flex-row"><button class="btn-counter action-btn" onclick="changeVal('black', -1)">-</button><button class="btn-counter action-btn" onclick="changeVal('black', 1)">+</button></div>
                 </div>
             </div>
         </section>
 
         <aside>
             <div class="section-box">
-                <div class="section-title">Je Prévois / Logistique</div>
-                <input type="text" id="locPRM" placeholder="Localisation Point de Regroupement (PRM)" class="local-saisie">
-                <select id="evolStatus" class="local-saisie"><option value="NON ÉVOLUTIVE">Situation NON ÉVOLUTIVE</option><option value="ÉVOLUTIVE">Situation ÉVOLUTIVE</option></select>
+                <div class="section-title">Besoins</div>
+                <div id="besoinsContainer"></div>
+                <button class="btn-plus action-btn" onclick="addNewBesoin()">+ AJOUTER BESOIN</button>
             </div>
-
             <div class="section-box">
-                <div class="section-title">Identification & Renforts</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 0px;">
-                    <select id="typo1" class="local-saisie"><option value="">-- Typologie 1 --</option></select>
-                    <select id="typo2" class="local-saisie"><option value="">-- Typologie 2 --</option></select>
+                <div class="section-title">Radio & Logistique</div>
+                <input type="text" id="locPRM" placeholder="Localisation PRM" class="local-saisie">
+                <select id="evolStatus" class="local-saisie"><option value="NON ÉVOLUTIVE">SITUATION FIXE</option><option value="ÉVOLUTIVE">SITUATION ÉVOLUTIVE</option></select>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:5px;">
+                    <select id="typo1" class="local-saisie"><option value="">Nature 1</option></select>
+                    <select id="typo2" class="local-saisie"><option value="">Nature 2</option></select>
                 </div>
-                <input type="text" id="vlmId" value="SMUR 1" placeholder="Mon Indicatif" class="local-saisie">
-                <textarea id="besoinRenforts" rows="1" placeholder="Besoin en renforts..." class="local-saisie" style="min-height: 40px;"></textarea>
-                <select id="secureStatus" class="local-saisie"><option value="SÉCURISÉE">Zone SÉCURISÉE</option><option value="NON SÉCURISÉE">Zone NON SÉCURISÉE</option></select>
+                <input type="text" id="vlmId" value="SMUR 1" class="local-saisie">
                 <button class="btn-primary" onclick="generateBilan()">GÉNÉRER SEQUENCE RADIO</button>
             </div>
-            
-            <textarea id="radioText" rows="14" readonly style="font-size: 0.72rem; font-family: monospace; line-height: 1.4; color: #38bdf8;"></textarea>
+            <textarea id="radioText" rows="10" readonly style="font-size: 0.65rem; color: var(--accent);"></textarea>
         </aside>
     </main>
 </div>
 
-<footer>
-    &copy; 2026 Applicata - Tous droits réservés
-</footer>
+<footer>&copy; 2026 AppliCata <span style="color:var(--accent)">v2.1.2</span></footer>
 
 <script type="module">
+    // ... (Le script JavaScript reste identique, il gère la logique Firebase et l'affichage) ...
+    // Note : Assurez-vous d'inclure tout le bloc script de la réponse précédente ici.
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-    // --- CONFIGURATION FIREBASE ---
     const firebaseConfig = { 
         apiKey: "AIzaSyCgZkgOClz8-iE21eCch2cggUXlqJ12fGc", 
         databaseURL: "https://triage-cata-pc-default-rtdb.europe-west1.firebasedatabase.app", 
@@ -210,144 +221,113 @@
 
     let isLocked = true;
     let localCurrentZone = "PRV 1"; 
+    let state = { mode: "EXERCICE", globalLoc: "", globalGPSUrl: "", zones: { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", gpsUrl: "", besoins: [] } } };
 
-    let state = { 
-        mode: "EXERCICE", 
-        globalLoc: "",
-        globalGPSUrl: "",
-        zones: { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", gpsUrl: "", p02:0, p310:0, p1015:0 } } 
-    };
-
-    // --- INITIALISATION SECURISEE ---
-    signInAnonymously(auth).then(() => {
-        onValue(triageRef, (s) => { 
-            const d = s.val(); 
-            if(d) { state = d; render(); } 
-            else { save(); } // Initialise la DB si vide
-        });
-    }).catch(err => console.error("Auth Fail:", err));
-
+    const besoinsOptions = ["Prévenir DSM d'astreinte", "Equipes médicales", "Infirmier (VLI)", "Lot PSM", "Antidotes", "Sacs damage control", "Unité de décontamination (UMD)", "Vecteurs terrestres", "Vecteurs aériens (Hélicoptère)", "CUMP", "Oxygène", "Soutien sanitaire opérationnel", "Autre : préciser"];
     const typs = ["Plaies par balles", "Plaies par arme blanche", "AVP – traumatologie", "Accident train", "Accident avion", "Incendie / explosion", "Intoxications", "Risque NRBC", "Catastrophe naturelle", "Autre"];
-    const tSel1 = document.getElementById('typo1'); 
-    const tSel2 = document.getElementById('typo2');
-    typs.forEach(t => { tSel1.add(new Option(t, t)); tSel2.add(new Option(t, t)); });
 
-    setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleString('fr-FR'); }, 1000);
+    signInAnonymously(auth).then(() => {
+        onValue(triageRef, (s) => { if(s.val()) { state = s.val(); render(); } else { save(); } });
+    });
 
-    // --- FONCTIONS SYSTEME ---
-    window.checkPass = () => { if(document.getElementById('passInput').value === "SAMU30") { document.getElementById('loginScreen').style.display = 'none'; document.getElementById('appMain').style.display = 'block'; } };
-    window.toggleLock = () => { isLocked = !isLocked; applyLockEffects(); };
-    function applyLockEffects() {
-        document.querySelectorAll('.action-btn').forEach(b => b.disabled = isLocked);
-        document.getElementById('lockIcon').innerText = isLocked ? "🔒" : "🔓";
-        document.getElementById('lockBtn').className = isLocked ? "lock-btn locked" : "lock-btn";
-        const counts = document.querySelectorAll('.count-value, .ped-row');
-        counts.forEach(c => isLocked ? c.classList.add('locked-data') : c.classList.remove('locked-data'));
-    }
+    const t1 = document.getElementById('typo1'), t2 = document.getElementById('typo2');
+    typs.forEach(t => { t1.add(new Option(t,t)); t2.add(new Option(t,t)); });
 
-    // --- GESTION CARTES ET GPS ---
-    window.openStoredMap = (btn) => {
-        const url = btn.getAttribute('data-url');
-        if (url) window.open(url, '_blank');
+    window.save = () => set(triageRef, state);
+    window.checkPass = () => { if(document.getElementById('passInput').value === "SAMU30") { document.getElementById('loginScreen').style.display='none'; document.getElementById('appMain').style.display='block'; }};
+    window.toggleLock = () => { isLocked = !isLocked; render(); };
+
+    window.changeVal = (c, n) => { if(!isLocked) { state.zones[localCurrentZone][c] = Math.max(0, (state.zones[localCurrentZone][c]||0)+n); save(); }};
+    window.updateMed = (v) => { state.zones[localCurrentZone].med = v; save(); };
+    window.updateSiteLoc = (v) => { state.zones[localCurrentZone].loc = v; save(); };
+    window.updateMode = (v) => { state.mode = v; save(); };
+    window.updateGlobalLoc = (v) => { state.globalLoc = v; save(); };
+
+    window.addNewBesoin = () => {
+        if(!isLocked) {
+            if(!state.zones[localCurrentZone].besoins) state.zones[localCurrentZone].besoins = [];
+            state.zones[localCurrentZone].besoins.push({ type: besoinsOptions[0], text: "" });
+            save();
+        }
     };
-
-    function cleanAddressOnly(addr) {
-        if(!addr) return "";
-        const toRemove = ["France métropolitaine", "France", "Occitanie", "Gard"];
-        let parts = addr.split(',').map(p => p.trim());
-        let filtered = parts.filter(p => !/^\d{5}$/.test(p) && !toRemove.some(rem => p.toLowerCase() === rem.toLowerCase()) && p.length > 0);
-        return filtered.slice(0, 3).join(', ');
-    }
+    window.updateBesoinType = (idx, val) => { state.zones[localCurrentZone].besoins[idx].type = val; save(); };
+    window.updateBesoinText = (idx, val) => { state.zones[localCurrentZone].besoins[idx].text = val; save(); };
+    window.removeBesoin = (idx) => { state.zones[localCurrentZone].besoins.splice(idx, 1); save(); };
 
     window.getGPSLocation = (fieldId) => {
         if (!navigator.geolocation) return;
-        const btn = event.currentTarget;
-        btn.innerText = "⌛";
+        const btn = event.currentTarget; btn.innerText = "⌛";
         navigator.geolocation.getCurrentPosition(async (pos) => {
             const { latitude, longitude } = pos.coords;
             const gpsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
                 const data = await res.json();
-                let cleanAddr = cleanAddressOnly(data.display_name) || `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-                document.getElementById(fieldId).value = cleanAddr;
-                if(fieldId === 'siteLoc') {
-                    state.zones[localCurrentZone].loc = cleanAddr;
-                    state.zones[localCurrentZone].gpsUrl = gpsUrl;
-                } else {
-                    state.globalLoc = cleanAddr;
-                    state.globalGPSUrl = gpsUrl;
-                }
-                save();
-                btn.innerText = "✅"; setTimeout(() => { btn.innerText = "📍"; }, 2000);
+                const clean = data.display_name.split(',').slice(0,3).join(',');
+                document.getElementById(fieldId).value = clean;
+                if(fieldId === 'siteLoc') { state.zones[localCurrentZone].loc = clean; state.zones[localCurrentZone].gpsUrl = gpsUrl; }
+                else { state.globalLoc = clean; state.globalGPSUrl = gpsUrl; }
+                save(); btn.innerText = "📍";
             } catch (e) { btn.innerText = "📍"; }
-        }, () => btn.innerText = "📍", { enableHighAccuracy: true });
+        }, () => btn.innerText = "📍");
     };
 
-    // --- ACTIONS DONNEES ---
-    window.save = () => set(triageRef, state);
-    window.updateMode = (v) => { state.mode = v; save(); };
-    window.updateGlobalLoc = (v) => { state.globalLoc = v; save(); };
-    window.updateMed = (v) => { state.zones[localCurrentZone].med = v; save(); };
-    window.updateSiteLoc = (v) => { state.zones[localCurrentZone].loc = v; save(); };
-    window.changeVal = (c, n) => { if (!isLocked) { state.zones[localCurrentZone][c] = Math.max(0, (state.zones[localCurrentZone][c]||0) + n); save(); } };
-    window.changePed = (c, n) => { if (!isLocked) { state.zones[localCurrentZone][c] = Math.max(0, (state.zones[localCurrentZone][c]||0) + n); save(); } };
-    window.switchZone = (n) => { localCurrentZone = n; render(); };
-    window.addZone = (prefix) => {
-        if(isLocked) return;
-        let n = prefix + " " + (Object.keys(state.zones).filter(k => k.startsWith(prefix)).length + 1);
-        state.zones[n] = { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", gpsUrl: "", p02:0, p310:0, p1015:0 }; 
-        localCurrentZone = n; save();
-    };
-    window.renameCurrentZone = () => { if(!isLocked) { const old = localCurrentZone; const n = prompt("Nom :", old); if (n && n !== old) { state.zones[n] = state.zones[old]; delete state.zones[old]; localCurrentZone = n; save(); } } };
-    window.resetAllData = () => { if(!isLocked && confirm("Tout effacer ?")) { state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", gpsUrl: "", p02:0, p310:0, p1015:0 } }; localCurrentZone = "PRV 1"; state.globalLoc = ""; state.globalGPSUrl = ""; save(); } };
+    window.openStoredMap = (btn) => { const url = btn.getAttribute('data-url'); if(url) window.open(url, '_blank'); };
+    window.switchZone = (z) => { localCurrentZone = z; render(); };
+    window.addZone = (p) => { if(!isLocked) { let n = p + " " + (Object.keys(state.zones).length + 1); state.zones[n] = { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", besoins: [] }; localCurrentZone = n; save(); }};
+    window.renameCurrentZone = () => { if(!isLocked) { const n = prompt("Nom :", localCurrentZone); if(n) { state.zones[n] = state.zones[localCurrentZone]; delete state.zones[localCurrentZone]; localCurrentZone = n; save(); }}};
+    window.resetAllData = () => { if(!isLocked && confirm("Tout effacer ?")) { state.zones = { "PRV 1": { red: 0, yellow: 0, green: 0, black: 0, med: "", loc: "", besoins: [] } }; save(); }};
 
-    // --- RENDU UI ---
     function render() {
-        document.getElementById('modeStatus').innerText = state.mode;
-        document.getElementById('radioExo').checked = state.mode === "EXERCICE";
-        document.getElementById('radioReel').checked = state.mode === "RÉEL";
-        document.getElementById('locSinistre').value = state.globalLoc || "";
-        const btnGlobal = document.getElementById('openGlobalMap');
-        if(state.globalGPSUrl) { btnGlobal.setAttribute('data-url', state.globalGPSUrl); btnGlobal.classList.add('active'); } 
-        else { btnGlobal.classList.remove('active'); }
-
-        const tabList = document.getElementById('tabList');
-        let h = Object.keys(state.zones).map(z => `<button class="tab ${z === localCurrentZone ? 'active' : ''}" onclick="switchZone('${z}')">${z}</button>`).join('');
-        h += `<button class="tab btn-add action-btn" onclick="addZone('PRV')">+ PRV</button><button class="tab btn-add action-btn" onclick="addZone('PMA')">+ PMA</button>`;
-        tabList.innerHTML = h;
-        
-        if(!state.zones[localCurrentZone]) localCurrentZone = Object.keys(state.zones)[0];
-        document.getElementById('activeTitle').innerText = localCurrentZone;
         const cz = state.zones[localCurrentZone];
-        ['red','yellow','green','black','p02','p310','p1015'].forEach(c => { document.getElementById('count-'+c).innerText = cz[c] || 0; });
-        document.getElementById('medName').value = cz.med || "";
-        document.getElementById('siteLoc').value = cz.loc || "";
-        const btnSite = document.getElementById('openSiteMap');
-        if(cz.gpsUrl) { btnSite.setAttribute('data-url', cz.gpsUrl); btnSite.classList.add('active'); } 
-        else { btnSite.classList.remove('active'); }
-        applyLockEffects();
+        let tUA=0, tUR=0, tV=0;
+        Object.values(state.zones).forEach(z => { tUA += (z.red||0); tUR += (z.yellow||0); tV += (z.green||0); });
+        document.getElementById('global-total').innerText = tUA+tUR+tV;
+        document.getElementById('global-ua').innerText = tUA; document.getElementById('global-ur').innerText = tUR; document.getElementById('global-green').innerText = tV;
+
+        document.getElementById('tabList').innerHTML = Object.keys(state.zones).map(z => `<button class="tab ${z===localCurrentZone?'active':''}" onclick="switchZone('${z}')">${z}</button>`).join('') + `<button class="tab action-btn" onclick="addZone('PMA')">+ PMA</button>`;
+        
+        document.getElementById('activeTitle').innerText = localCurrentZone;
+        document.getElementById('count-red').innerText = cz.red; document.getElementById('count-yellow').innerText = cz.yellow; document.getElementById('count-green').innerText = cz.green; document.getElementById('count-black').innerText = cz.black;
+        document.getElementById('medName').value = cz.med || ""; document.getElementById('siteLoc').value = cz.loc || "";
+        document.getElementById('locSinistre').value = state.globalLoc || "";
+        document.getElementById('modeStatus').innerText = state.mode;
+
+        const bS = document.getElementById('openSiteMap'); if(cz.gpsUrl){ bS.setAttribute('data-url', cz.gpsUrl); bS.classList.add('active'); } else bS.classList.remove('active');
+        const bG = document.getElementById('openGlobalMap'); if(state.globalGPSUrl){ bG.setAttribute('data-url', state.globalGPSUrl); bG.classList.add('active'); } else bG.classList.remove('active');
+
+        const bCont = document.getElementById('besoinsContainer');
+        bCont.innerHTML = (cz.besoins || []).map((b, i) => `
+            <div class="besoin-row">
+                <div style="flex-grow:1;">
+                    <select onchange="updateBesoinType(${i}, this.value)" class="action-btn">
+                        ${besoinsOptions.map(o => `<option value="${o}" ${b.type===o?'selected':''}>${o}</option>`).join('')}
+                    </select>
+                    ${b.type.includes('Autre') ? `<input type="text" placeholder="Détaillez..." value="${b.text}" oninput="updateBesoinText(${i}, this.value)" class="action-btn">` : ''}
+                </div>
+                <button class="btn-remove action-btn" onclick="removeBesoin(${i})">✕</button>
+            </div>
+        `).join('');
+
+        document.querySelectorAll('.action-btn, .local-saisie, .btn-counter').forEach(el => el.disabled = isLocked);
+        document.getElementById('lockIcon').innerText = isLocked ? "🔒" : "🔓";
+        document.getElementById('lockBtn').className = isLocked ? "lock-btn locked" : "lock-btn";
+        document.querySelectorAll('.count-value').forEach(c => isLocked ? c.classList.add('locked-data') : c.classList.remove('locked-data'));
     }
 
-    // --- SEQUENCE RADIO ---
     window.generateBilan = () => {
-        const z = state.zones[localCurrentZone];
-        const indicatif = document.getElementById('vlmId').value || "SMUR 1";
+        const cz = state.zones[localCurrentZone];
         const prefix = state.mode === "EXERCICE" ? "*** EXERCICE ***\n" : "*** RÉEL ***\n";
-        const total = (z.red||0) + (z.yellow||0) + (z.green||0) + (z.black||0);
-        const totalPed = (z.p02||0) + (z.p310||0) + (z.p1015||0);
-        let typologies = document.getElementById('typo1').value;
-        if(document.getElementById('typo2').value) typologies += " + " + document.getElementById('typo2').value;
-
-        let text = `${prefix}HORODATAGE : ${new Date().toLocaleString('fr-FR')}\nSAMU 30, DE : ${indicatif}\n\n`;
-        text += `1. JE SUIS :\n- Secteur : ${localCurrentZone}\n- Pos : ${z.loc || 'N/C'}\n- Resp : ${z.med || 'À désigner'}\n- Sinistre : ${state.globalLoc || 'N/C'}\n\n`;
-        text += `2. JE VOIS :\n- Nature : ${typologies || 'À préciser'}\n- Sécurité : ${document.getElementById('secureStatus').value}\n- Bilan : ${total} Victimes (UA:${z.red||0}/UR:${z.yellow||0}/V:${z.green||0}/N:${z.black||0})\n`;
-        if(totalPed > 0) text += `- Dont Péd : ${totalPed} (0-2a:${z.p02||0}, 3-10a:${z.p310||0}, 10-15a:${z.p1015||0})\n`;
-        text += `\n3. JE PRÉVOIS :\n- PRM : ${document.getElementById('locPRM').value || 'Non défini'}\n- Évolution : ${document.getElementById('evolStatus').value}\n\n`;
-        text += `4. JE FAIS : Triage et stabilisation sur ${localCurrentZone}\n\n`;
-        text += `5. JE DEMANDE : ${document.getElementById('besoinRenforts').value || 'RAS'}\n\n${prefix}*** TERMINÉ ***`;
-        document.getElementById('radioText').value = text;
+        const needs = (cz.besoins || []).map(b => `- ${b.type}${b.text?' : '+b.text:''}`).join('\n');
+        let msg = `${prefix}HORODATAGE : ${new Date().toLocaleString('fr-FR')}\nDE : ${document.getElementById('vlmId').value}\n\n`;
+        msg += `1. JE SUIS :\n- Secteur : ${localCurrentZone}\n- Pos : ${cz.loc || 'N/C'}\n- Resp : ${cz.med || 'N/C'}\n\n`;
+        msg += `2. JE VOIS :\n- Nature : ${document.getElementById('typo1').value} / ${document.getElementById('typo2').value}\n- Sécu : ${document.getElementById('secureStatus').value}\n- Bilan : UA:${cz.red} / UR:${cz.yellow} / V:${cz.green}\n\n`;
+        msg += `3. JE PRÉVOIS :\n- PRM : ${document.getElementById('locPRM').value || 'N/C'}\n- Évolution : ${document.getElementById('evolStatus').value}\n\n`;
+        msg += `4. BESOINS :\n${needs || '- Néant'}\n\n${prefix}*** TERMINÉ ***`;
+        document.getElementById('radioText').value = msg;
     };
+
+    setInterval(() => { document.getElementById('clock').innerText = new Date().toLocaleString('fr-FR'); }, 1000);
 </script>
 </body>
 </html>
